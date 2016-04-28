@@ -1,21 +1,36 @@
-var exec = require('child_process').exec;
+var argv = require('yargs').argv;
 var del = require('del');
+var exec = require('child_process').exec;
+var fs = require('fs');
 var gulp = require('gulp');
 var gulpIf = require('gulp-if');
 var plumber = require('gulp-plumber');
 var rev = require('gulp-rev');
 var revReplace = require('gulp-rev-replace');
-var sass = require('gulp-sass');
-var useref = require('gulp-useref');
+var rsync = require('rsyncwrapper');
 var runSequence = require('run-sequence');
+var sass = require('gulp-sass');
+var GulpSSH = require('gulp-ssh');
+var useref = require('gulp-useref');
 var webpack = require('webpack-stream');
 
 var config = require('./gulp.config');
+
+var production = argv.p || argv.production;
+
+config.host = production ? config.HOST : config.DEV_HOST;
+config.hostUsername = production ? config.HOST_USERNAME : config.DEV_HOST_USERNAME;
+config.hostDir = production ? config.HOST_DIR : config.DEV_HOST_DIR;
+config.restartServer = production ? config.RESTART_HOST_SERVER : config.RESTART_DEV_HOST_SERVER;
+config.sshPrivateKeyFile = process.env['SSH_PRIVATE_KEY_FILE'];
+config.sshPassphrase = process.env['SSH_PASSPHRASE'];
+
 
 var rootFolders = {
     src: 'src/',
     dist: 'dist/'
 };
+
 var subFolders = {
     ts: 'static/ts/',
     js: 'static/js/',
@@ -23,6 +38,18 @@ var subFolders = {
     css: 'static/css/',
     templates: 'templates/'
 };
+
+console.log(config.sshPrivateKeyFile);
+var gulpSSH = new GulpSSH({
+    ignoreErrors: false,
+    sshConfig: {
+        host: config.host,
+        port: 22,
+        username: config.hostUsername,
+        privateKey: fs.readFileSync(config.sshPrivateKeyFile),
+        passphrase: config.sshPassphrase
+    }
+});
 
 function errorPlumber() {
     return plumber({
@@ -50,12 +77,13 @@ gulp.task('js:dev', function() {
     return transpileJS(true, true)
 });
 
-gulp.task('js:deploy:dev', function() {
-    return transpileJS(false, true);
-});
-
-gulp.task('js:deploy:production', function() {
-    return transpileJS(false, false);
+gulp.task('js:deploy', function() {
+    if (!production) {
+        return transpileJS(false, true);
+    }
+    else {
+        return transpileJS(false, false);
+    }
 });
 
 gulp.task('sass', function() {
@@ -75,14 +103,8 @@ gulp.task('clean', function() {
                         rootFolders.src + subFolders.css + '**/*']);
 });
 
-gulp.task('copy:js', function() {
-    gulp.src(rootFolders.src + subFolders.js + '**/*.js')
-            .pipe(gulp.dest(rootFolders.dist + subFolders.js));
-});
-
-gulp.task('copy:css', function() {
-    gulp.src(rootFolders.src + subFolders.css + '**/*.css')
-            .pipe(gulp.dest(rootFolders.dist + subFolders.css));
+gulp.task('clean:rev-manifest', function() {
+    del([rootFolders.dist + 'rev-manifest.json']);
 });
 
 gulp.task('copy:templates', function() {
@@ -95,12 +117,17 @@ gulp.task('copy:py', function() {
             .pipe(gulp.dest(rootFolders.dist))
 });
 
+gulp.task('copy:requirements', function() {
+    gulp.src('./requirements.txt')
+            .pipe(gulp.dest(rootFolders.dist));
+});
+
 gulp.task('copy', function() {
-    return runSequence(['copy:js', 'copy:css', 'copy:py', 'copy:templates']);
+    return runSequence(['copy:py', 'copy:templates', 'copy:requirements']);
 });
 
 gulp.task('revision', function() {
-    return gulp.src([rootFolders.dist + subFolders.js + '**/*.js', rootFolders.dist + subFolders.css + '**/*.css'])
+    return gulp.src([rootFolders.src + '**/*.js', rootFolders.src + '**/*.css'])
             .pipe(rev())
             .pipe(gulp.dest(rootFolders.dist))
             .pipe(rev.manifest())
@@ -108,7 +135,7 @@ gulp.task('revision', function() {
 });
 
 gulp.task('cache-bust', ['revision'], function() {
-    var manifest = gulp.src("./dist/rev-manifest.json");
+    var manifest = gulp.src(rootFolders.dist + 'rev-manifest.json');
 
     return gulp.src(rootFolders.src + subFolders.templates + 'base.html')
             .pipe(revReplace({manifest: manifest}))
@@ -126,11 +153,33 @@ gulp.task('serve', function() {
                      });
 });
 
-gulp.task('deploy:dev', function() {
-    return runSequence('clean',
-                       ['js:deploy:dev', 'css'],
-                       'copy',
-                       'cache-bust');
+gulp.task('rsync', function(cb) {
+    rsync({
+              src: rootFolders.dist,
+              dest: config.hostUsername + '@' + config.host + ':' + config.hostDir + '/' + rootFolders.dist,
+              recursive: true,
+              deleteAll: true
+          }, function(err, stdout, stderr) {
+        if (err) { console.log(err); }
+        if (stdout) { console.log(stdout); }
+        if (stderr) { console.log(stderr); }
+        cb();
+    })
+});
+
+gulp.task('restartServer', function() {
+    return gulpSSH.shell([config.restartServer]);
+});
+
+gulp.task('deploy', function(cb) {
+      runSequence('clean',
+                 ['js:deploy', 'sass'],
+                  'copy',
+                  'cache-bust',
+                  'clean:rev-manifest',
+                  'rsync',
+                  'restartServer',
+                  cb);
 });
 
 gulp.task('default', function() {

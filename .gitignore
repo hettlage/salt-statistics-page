@@ -2,3 +2,6 @@ gulp.config.js
 node_modules
 src/static/css
 dist
+config/development.py
+__pycache__
+*.pyc
