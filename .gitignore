@@ -5,3 +5,4 @@ dist
 config/development.py
 __pycache__
 *.pyc
+src/static/js
