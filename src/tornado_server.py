@@ -6,7 +6,7 @@ from tornado.wsgi import WSGIContainer
 
 from app import create_app
 
-app = create_app(os.environ['FLASK_CONFIG'])
+app = create_app(os.environ['SALTSTATS_FLASK_CONFIG'])
 
 http_server = HTTPServer(WSGIContainer(app))
 http_server.listen(8000)
