@@ -150,52 +150,62 @@ Either way, you will have to refresh the browser when you have made changes to t
 
 ## Server configuration
 
-The following requirements must be met.
+The following outlines how to get the site up-and-running on an Ubuntu 14 server. We assume that the server is called saltstats.salt.ac.za.
 
-* Apache 2 is installed and running.
-* `mod_wsgi` must be installed and enabled. *Remember that mod_wsgi must be compiled against the Python compiler you will be using. So if installed with a tool  like apt-get, mod_wsgi presumably won't work with compilers like Anaconda. Also make sure that you install mod_wsgi for the correct version of Python.*
-* You must have a virtual environment.
-
-How to set up a virtual environment depends on the operating system and on the version of Python you are using. If you are using Python 3 (which is the formal requirement for this project) on a Mac, it should be as simple as running
-
-```bash
-python3 -m venv venv
-```
-
-On Ubuntu 14, you'll have to do something like
+First, virtualenv  must be installed for Python 3.
 
 ```bash
 apt-get python3-pip
 pip3 install virtualenv
+cd /var/www/saltstats.salt.ac.za
 python3 -m virtualenv venv
 ```
 
-You may choose a name other than `venv` for your virtual environment.
+You may choose a name other than `venv` for your virtual environment, but then you'll have to modify the subsequent steps accordingly.
 
-The Apache configuration for the statistics page looks as follows.
+Deploy the site content to the server, as described in the next section, and ensure all the Python requirements are met.
 
-```apache
-<VirtualHost *:80>
-WSGIDaemonProcess saltstats python-path=/path/to/project/dist:/path/to/packages/in/venv
-WSGIProcessGroup saltstats
-WSGIScriptAlias / /var/www/saltstats.cape.saao.ac.za/wsgi.py
-WSGIPassAuthorization On
-WSGIScriptReloading On
-
-DocumentRoot "/path/to/project/dist"
-ServerName your.server.address
-WSGIScriptAlias / /path/to/project/wsgi.py
-<Directory /path/to/project/>
-Order allow,deny
-Allow from all
-</Directory>
-
-ErrorLog ${APACHE_LOG_DIR}/your.server.address-error.log
-CustomLog ${APACHE_LOG_DIR}/your.server.address-access.log combined
-</VirtualHost>
+```bash
+cd /var/www/saltstats.salt.ac.za
+source venv/bin/activate
+pip install -r dist/requirements.txt
 ```
 
-`/path/to/project/` and `your.server.address` need to be replaced with the correct values, of course. `/path/to/packages/in/venv` must be replaced with the path to the lib directory of the virtual environment you are intending to use. This path will look similar to `/path/to/venv/lib/python3.4/site-packages`.
+Add a configuration file for launching Tornado whenever the system is booted. To this end, create a file `/etc/init/saltstats-flask./conf` with the following content.
+
+```
+description "Tornado application server running Flask for saltstats.cape.saao.ac.za"
+
+start on runlevel [2345]
+stop on runlevel [!2345]
+
+respawn
+setuid www-data
+setgid www-data
+
+env SALTSTATS_FLASK_CONFIG=production
+env SALTSTATS_SECRET_KEY='shuck-granny-upscale'
+env SALTSTATS_DATABASE_URI='mysql://piptquerytool:***REMOVED***@devsdb.cape.saao.ac.za/sdb_copy'
+
+script
+    cd /var/www/saltstats.cape.saao.ac.za/dist
+    /var/www/saltstats.cape.saao.ac.za/venv/bin/python tornado_server.py
+end script
+```
+
+If the server doesn't start after rebooting, you should check whether an error has been logged in `/var/log/upstart/saltstats-flask.log`.
+
+Reboot the server.
+
+```bash
+reboot
+```
+
+Try whether the Tornado server is up-and-running.
+
+```bash
+wget -O - http://127.0.0.1:8000
+```
 
 ## Deployment
 
