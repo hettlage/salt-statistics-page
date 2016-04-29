@@ -36,7 +36,7 @@ var subFolders = {
     js: 'static/js/',
     scss: 'static/scss/',
     css: 'static/css/',
-    templates: 'templates/'
+    templates: 'app/templates/'
 };
 
 console.log(config.sshPrivateKeyFile);
@@ -173,7 +173,7 @@ gulp.task('restartServer', function() {
 
 gulp.task('deploy', function(cb) {
       runSequence('clean',
-                 ['js:deploy', 'sass'],
+                // ['js:deploy', 'sass'],
                   'copy',
                   'cache-bust',
                   'clean:rev-manifest',
