@@ -1,16 +1,18 @@
 import datetime
-import numpy as np
-import pandas as pd
-from flask import render_template
 
 from bokeh.models import Range1d
 from bokeh.models.formatters import DatetimeTickFormatter
+from flask.ext.login import login_required
+from flask import render_template
+import numpy as np
+import pandas as pd
 
 from ..main import main
 from ..plot.plot import TimeBarPlot
 
 
 @main.route('/', methods=['GET'])
+@login_required
 def home():
     from_date = datetime.datetime(2016, 4, 1, 12, 0, 0, 0)
     to_date = from_date + datetime.timedelta(days=30)
