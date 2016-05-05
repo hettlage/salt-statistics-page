@@ -52,8 +52,11 @@ Essentially, the following property needs to be defined in each of the configura
 | Property | Description | Example |
 | -- | -- |
 | DEBUG | Run the server in debug mode? |  False |
+| SECRET_KEY | Key used by Flask for encryption | top_secret |
+| SQLALCHEMY_DATABASE_URI | URI for accessing the database | mysql://username:password@your.database.server/database |
+| LDAP_SERVER | LDAP server used for authentication | your.ldap.server |
 
-For security reasons the database URI and secret key are supplied as environment variables rather than being set in the configuration files. This implies that you must set the following environment variables.
+For security reasons the database URI and secret key should be supplied as environment variables rather than being set in the configuration files. This implies that if you use the provided example configurations, you must set the following environment variables.
 
 | Environment variable | Description | Example |
 | -- | -- |
@@ -64,7 +67,7 @@ For security reasons the database URI and secret key are supplied as environment
 | SALTSTATS_DEV_DATABASE_URI | Database URI for development mode | mysql://username:password@your.dev.database.server/database |
 | SALTSTATS_TEST_DATABASE_URI | Database URI for testing mode | sqlite:////path.to.database.file.sqlite3 |
 
-If you don't use a mode, there is no need to supply the corresponding configuration file or environment variables.
+If you don't use a mode (testing, development or production), there is no need to supply the corresponding configuration file or environment variables.
 
 ## Configuration for deployment
 
@@ -205,6 +208,62 @@ Try whether the Tornado server is up-and-running.
 
 ```bash
 wget -O - http://127.0.0.1:8000
+```
+
+Install nginx.
+
+```bash
+apt-get install nginx
+```
+
+On Ubuntu, you should add the configuration file in the folder `/etc/nginx/sites-available/`, and itv should have the following content.
+
+```
+upstream tornado_app {
+    server 127.0.0.1:8000;
+}
+
+server {
+    listen *:80;
+    server_name your.server.addredss;
+
+    access_log  /var/log/nginx/access.log;
+    error_log  /var/log/nginx/error.log;
+
+    location / {
+        try_files $uri @tornado;
+    }
+
+    location @tornado {
+        proxy_pass http://tornado_app;
+        proxy_redirect off;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+}
+```
+
+You can then enable the configuration,
+
+```bash
+ln -s /etc/nginx/sites-available/saltstats.cape.saao.ac.za.conf /etc/nginx/sites-enabled/saltstats.cape.saao.ac.za.conf
+
+and restart the server.
+
+```bash
+service nginx restart
+```
+
+On a non-Ubuntu system you might have to provide the full configuration file for nginx:
+
+```
+events {
+}
+
+http {
+    ... configuration content as for Ubuntu ...
+}
 ```
 
 ## Deployment
