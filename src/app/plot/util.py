@@ -1,6 +1,12 @@
 import datetime
+import math
+
 import numpy as np
+from bokeh.models import Range1d
+from bokeh.models.formatters import DatetimeTickFormatter
 from dateutil import parser
+
+from .plot import TimeBarPlot
 
 def bin_by_date(df, date_column, agg_func=np.sum):
     """Bin dataframe data by date.
@@ -75,11 +81,14 @@ def bin_by_month(df, date_column, month_column, agg_func=np.sum):
 
     # add month column
     start_date = parser.parse(grouped.index[0])
-    dm = datetime.timedelta(seconds=365.25 * 24 * 3600 / 12)  # average month length
+    dm = DX_MONTH
     grouped[month_column] = [(start_date + months_between(start_date, parser.parse(d)) * dm).date()
                              for d in grouped.index]
 
     return grouped
+
+
+DX_MONTH = datetime.timedelta(seconds=365.25 * 24 * 3600 / 12)  # average month length
 
 
 def bin_by_semester(df, date_column, semester_column, agg_func=np.sum):
@@ -124,3 +133,28 @@ def bin_by_semester(df, date_column, semester_column, agg_func=np.sum):
     grouped[semester_column] = [s for s in grouped.index]
 
     return grouped
+
+
+def daily_bar_plot(df, night, date_column, y_column, y_range):
+    date_formats = dict(hours=['%d'], days=['%d'], months=['%d'], years=['%d'])
+    return TimeBarPlot(df=df.rename(columns={date_column: 'x', y_column: 'y'}),
+                       dx=datetime.timedelta(days=1),
+                       x_range=Range1d(start=night - datetime.timedelta(days=31),
+                                   end=night- datetime.timedelta(days=1)),
+                       y_range=y_range,
+                       date_formatter=DatetimeTickFormatter(formats=date_formats),
+                       label_orientation=math.pi / 2)
+
+
+def monthly_bar_plot(df, night, date_column, month_column, y_column, y_range):
+    mid_month = datetime.date(night.year, night.month, 15)
+    date_formats = dict(hours=['%b'], days=['%b'], months=['%b'], years=['%b'])
+    binned_df = bin_by_month(df=df,
+                             date_column=date_column,
+                             month_column=month_column)
+    return TimeBarPlot(df=binned_df.rename(columns={month_column: 'x', y_column: 'y'}),
+                       dx=DX_MONTH,
+                       x_range=Range1d(start=mid_month - 6 * DX_MONTH,
+                                       end=mid_month - 1 * DX_MONTH),
+                       y_range=y_range,
+                       date_formatter=DatetimeTickFormatter(formats=date_formats))
