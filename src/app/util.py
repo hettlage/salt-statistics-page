@@ -1,0 +1,1 @@
+SCIENCE_PROPOSAL_TYPES = "('Science', 'Science - Long Term', 'Key Science Program', 'Director Discretionary Time (DDT)', 'Science Verification')"
