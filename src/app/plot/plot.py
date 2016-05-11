@@ -6,17 +6,47 @@ import pytz
 from bokeh.embed import components
 from bokeh.models import ColumnDataSource, FixedTicker, Quad, Range1d
 from bokeh.models.axes import LinearAxis
-from bokeh.models.formatters import DatetimeTickFormatter
 from bokeh.plotting import figure
+
 
 class Plot:
     """Abstract base class for plots to be displayed on the SALT statistics pages.
+
+    The plot is created with Bokeh (http://bokeh.pydata.org), and the Figure instance for the plot is exposed as
+    `self.plot`.
+
+    Any parameters passed to the constructor will be passed on to the `bokeh.plotting.Figure` constructor.
+
+    Methods:
+    --------
+    to_html(string)
+         HTML for showing the plot.
+
     """
 
     def __init__(self, **kwargs):
         self.plot = figure(**kwargs)
 
     def to_html(self):
+        """HTML for displaying the plot.
+
+        While the HTML contains the JavaScript related to this particular plot, it doesn't contain the general Bokeh
+        JavaScript. So you have to ensure that your HTML document imports the Bokeh JavaScript before this method is
+        called. You may do this by including a script element
+
+        ::
+            <script src="http://cdn.pydata.org/bokeh/release/bokeh-x.y.z.min.js"></script>
+
+        where x.y.z is the version of Bokeh used. You also need to include the Bokeh CSS in your document:
+
+        ::
+            <link rel="stylesheet" href="http://cdn.pydata.org/bokeh/release/bokeh-x.y.z.min.css">
+
+        Again, x.y.z denotes the Bokeh version.
+
+        A class extending this one must ensure that its constructor adds all the plot content to `self.plot`.
+        """
+
         div, script = components(self.plot)
         return '<div class="printable plot">' + script + div + '</div>'
 
@@ -28,7 +58,34 @@ class Plot:
 
 
 class TimeBarPlot(Plot):
-    """A bar plot for plotting bars for times.
+    """A bar plot for plotting bars for a list of dates.
+
+    Parameters not listed below are passed on to the __init__ method of the parent class.
+
+    Parameters:
+    -----------
+    df : pandas.DataFrame
+        A dataframe of the data to plot. The dataframe must at least contain columns named `x` (for the dates), `y`
+        (for the y values) and, if an alternative y value range is passed as parameter, `alt_y` (for the alternative y
+        values). The data is assumed to be for equidistant dates, but it is perfectly acceptable to leave out dates.
+    dx : datetime.timedelta
+        The time difference between subsequent dates.
+    x_range : bokeh.models.Range1d
+        The range of dates to plot. If `x` is an item of the date column (`df['x']`), there must be integers `m`, `n`
+        so that `x_range_start == x + (m + 0.5) * dx` and `x_range.end == x + (n + 0.5) * dx`.
+    y_range : bokeh.models.Range1d
+        The value range to use for the y axis.
+    date_formatter : bokeh.models.formatters.DatetimeTickFormatter
+        The formatter to use for the labels of the date axis.
+    x_label_orientation : str or float, optional
+        The orientation of the date axis labels. Possible values are `'horizontal'`, `'vertical'` or an angle in
+        radians. The default is `'horizontal'`.
+    label_font_size : str, optional
+        The font size to use for the axis labels. You can use any string which would be accepted by the CSS `font-size`
+        attribute. The chosen is used for both date and y axis.
+    alt_y_range : bokeh.models.Range1d, optional
+        The value range to use for the alternative y axis. This value must be supplied if `df` has an `alt_y` column,
+        and vice versa.
     """
 
     PRIMARY_COLOR = 'blue'
@@ -55,7 +112,7 @@ class TimeBarPlot(Plot):
         if ('alt_y' in df and not alt_y_range) or (alt_y_range and 'alt_y' not in df):
             raise ValueError('alternate y values and alternative y range must always be used together')
 
-        dx = self.total_milliseconds(dx)
+        dx = self._total_milliseconds(dx)
         if 'alt_y' in df:
             offset = 0.05 * dx
             bar_width = 0.35 * dx
@@ -64,7 +121,7 @@ class TimeBarPlot(Plot):
             bar_width = 0.6 * dx
         offset = int(round(offset))
         bar_width = int(round(bar_width))
-        x = np.array([self.milliseconds_timestamp(d) for d in df['x']])
+        x = np.array([self._milliseconds_timestamp(d) for d in df['x']])
         x1 = x - offset - bar_width
         x2 = x - offset
         y1 = np.zeros(len(x1))
@@ -81,18 +138,29 @@ class TimeBarPlot(Plot):
             source_content['alt_y2'] = alt_y2
         self.source = ColumnDataSource(source_content)
         self.dx = dx
-        self.x_range = Range1d(start=self.milliseconds_timestamp(x_range.start) - dx // 2,
-                               end=self.milliseconds_timestamp(x_range.end) + dx // 2)
+        self.x_range = Range1d(start=self._milliseconds_timestamp(x_range.start) - dx // 2,
+                               end=self._milliseconds_timestamp(x_range.end) + dx // 2)
         self.y_range = y_range
         self.alt_y_range = alt_y_range
         self.date_formatter = date_formatter
-        self.label_orientation = label_orientation
+        self.x_label_orientation = label_orientation
         self.label_font_size = label_font_size
 
-        self.init_plot()
+        self._init_plot()
 
     @staticmethod
-    def milliseconds_timestamp(d):
+    def _milliseconds_timestamp(d):
+        """Milliseconds since the Unix epoch.
+
+        Params:
+        -------
+        d: datetime.datetime or datetime.date
+            Date.
+
+        Returns:
+        --------
+        int: The number of milliseconds between the Unix epoch and `d`.
+        """
         if isinstance(d, datetime.datetime):
             d = datetime.datetime(d.year, d.month, d.day, d.hour, d.minute, d.second, 0, tzinfo=pytz.UTC)
         else:
@@ -100,17 +168,42 @@ class TimeBarPlot(Plot):
         return int(round(d.timestamp() * 1000))
 
     @staticmethod
-    def total_milliseconds(dt):
+    def _total_milliseconds(dt):
+        """Number of milliseconds in a time difference
+
+        Params:
+        -------
+        dt: datetime.timedelta
+                Time difference.
+
+        Returns:
+        --------
+        int
+            The number of milliseconds in `dt`.
+        ."""
         return int(round(dt.total_seconds() * 1000))
 
-    def init_plot(self):
+    def _init_plot(self):
+        """Initialise the plot.
+
+        The following glyphs are created:
+
+        * Background stripes with alternating colours.
+        * Bars for the y values as a function of the date.
+        * Bars for the alternative y values, if requested.
+        * Axis ticks and labels.
+
+        No outline or grid lines are included in the plot.
+        """
         p = self.plot
 
+        # axes ranges
         p.x_range = self.x_range
         p.y_range = self.y_range
         if self.alt_y_range:
             p.extra_y_ranges = {'alt_y': self.alt_y_range}
 
+        # background stripes with alternating color
         def add_background_stripe(x, index):
             if divmod(index, 2)[1] == 1:
                 color = self.ODD_BOX_ANNOTATION_COLOR
@@ -125,21 +218,16 @@ class TimeBarPlot(Plot):
                      fill_alpha=0.2)
             self.plot.add_glyph(q)
 
+        # add background stripes
         x_min = self.x_range.start + self.dx // 2
         x_max = self.x_range.end - self.dx // 2
-        x_arr = self.source.data['x']
-        first_x_in_range = x_arr[x_arr > self.x_range.start][0]
         i = 0
-        while first_x_in_range - i * self.dx >= x_min:
-            x = first_x_in_range - i * self.dx
-            add_background_stripe(x, i)
-            i += 1
-        i = 1
-        while first_x_in_range + i * self.dx <= x_max:
-            x = first_x_in_range + i * self.dx
+        while x_min + i * self.dx <= x_max:
+            x = x_min + i * self.dx
             add_background_stripe(x, i)
             i += 1
 
+        # bars for primary values
         p.quad(source=self.source,
                left='x1',
                bottom='y1',
@@ -147,6 +235,8 @@ class TimeBarPlot(Plot):
                top='y2',
                fill_color=self.PRIMARY_COLOR,
                line_color=None)
+
+        # bars for secondary (alternative) values
         if self.alt_y_range:
             p.quad(source=self.source,
                    y_range_name='alt_y',
@@ -159,29 +249,61 @@ class TimeBarPlot(Plot):
 
         p.xgrid.grid_line_color = None
 
+        # twin date axis and (if necessary) y axis
         p.add_layout(LinearAxis(), 'above')
         if self.alt_y_range:
             p.add_layout(LinearAxis(y_range_name='alt_y'), 'right')
 
-        tick_count = 1 + int(round((x_max - x_min) // self.dx))
+        # date axis labels
+        tick_count = 1 + int(round((x_max - x_min) / self.dx))
         p.xaxis.ticker = FixedTicker(ticks=np.linspace(x_min, x_max, tick_count))
         p.xaxis.formatter = self.date_formatter
         p.xaxis.major_tick_line_color = None
         p.xaxis.major_tick_out = 0
-        p.xaxis.major_label_orientation = self.label_orientation
+        p.xaxis.major_label_orientation = self.x_label_orientation
         p.axis.major_label_text_font_size = self.label_font_size
 
 
 class DialPlot(Plot):
+    """A dial plot.
+
+    The plot has one or two hands, depending on how many values are supplied.
+
+    Params:
+    -------
+    values: list of float
+        Values to use for the hand(s). The first value is assumed to be the primary one.
+    label_values: list of str
+        Values to use for the dial labels.
+    label_color_func: function
+        Function mapping a value to a string denoting a colour, as you would use it for the CSS color attribute. This
+        function is used for deciding what color to use for the wedge sections between labels.
+    display_values: list of str
+        Values to show on the value display. The first value is assumed to be the primary one.
+
+    Parameters not listed below are passed on to the __init__ method of the parent class.
+    """
     def __init__(self, values, label_values, label_color_func, display_values, **kwargs):
         Plot.__init__(self, **kwargs)
         self.values = values
         self.label_values = label_values
         self.label_color_func = label_color_func
         self.display_values = display_values
-        self.init_plot()
 
-    def init_plot(self):
+        self._init_plot()
+
+    def _init_plot(self):
+        """Initialise the plot.
+
+        The following glyphs are created.
+
+        * Dial wedges.
+        * Labels.
+        * One or two hands.
+        * Value display with one or two values.
+
+        No outline, grid lines or axes are included in the plot.
+        """
         # no axes, no grid lines, suitable ranges
         self.plot.axis.visible = None
         self.plot.grid.grid_line_color = None
@@ -271,13 +393,13 @@ class DialPlot(Plot):
                            text_font_size='110%',
                            text_font_style='bold')
 
-        # draw hand(s)
+        # draw hand
         def draw_hand(value, color):
             """The hand consists of a semicircle and a triangle, both of which need to be rotated by the angle
             corresponding to the given value."""
 
             if value > max_value:
-                return
+                value = max_value
 
             angle = angle_func(value)
             hand_radius = 0.04
@@ -297,6 +419,7 @@ class DialPlot(Plot):
                             y=[p1[1], p2[1], p3[1]],
                             color=color)
 
+        # draw hand for primary and (if applicable) secondary value
         draw_hand(self.values[0], '#2423ff')
         if len(self.values) > 1:
             draw_hand(self.values[1], '#ffa523')
