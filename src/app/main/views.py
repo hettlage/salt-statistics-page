@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 
 from ..main import main
-from ..plot.blocks import BlockVisitPlots
+from ..plot.block_visits import BlockVisitPlots
 from ..plot.plot import TimeBarPlot, DialPlot
 
 
