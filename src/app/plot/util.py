@@ -3,7 +3,7 @@ import math
 
 import numpy as np
 import pandas
-from bokeh.models import Range1d
+from bokeh.models import Line, Range1d
 from bokeh.models.formatters import DatetimeTickFormatter
 from dateutil import parser
 
@@ -224,11 +224,15 @@ def filter_week_to_date(df, date, date_column):
     return filter_days_to_date(df=df, date=date, days=7, date_column=date_column)
 
 
-def daily_bar_plot(df, start_date, end_date, date_column, y_column, y_range, alt_y_column=None, alt_y_range=None):
+def daily_bar_plot(df, start_date, end_date, date_column, y_column, y_range, trend_func,
+                   alt_y_column=None, alt_y_range=None):
     """A bar plot showing data by date.
 
     The data may contain alternative y values. If so, you have to specify both their column name and the value range to
     use for the alternative y axis.
+
+    An example for `trend_func` would be `functools.partial(day_running_average, ignore_missing_values=False)`. Pass
+    None if there should be no trend line.
 
     Params:
     -------
@@ -244,6 +248,9 @@ def daily_bar_plot(df, start_date, end_date, date_column, y_column, y_range, alt
         Name of the column containing the y values to plot.
     y_range : bokeh.models.Range1d
         The value range to use for the y axis.
+    trend_func: function
+        Function to use for calculating trend values. This function must accept a Pandas dataframe (having columns named
+        'x' and 'y') and an x value as its arguments.
     alt_y_column : string, optional
         Name of the column column containing alternative y values.
     alt_y_range : bokeh.models.Range1d, optional
@@ -263,23 +270,39 @@ def daily_bar_plot(df, start_date, end_date, date_column, y_column, y_range, alt
     renamed_columns = {date_column: 'x', y_column: 'y'}
     if alt_y_column:
         renamed_columns[alt_y_column] = 'alt_y'
-    return TimeBarPlot(df=df.rename(columns=renamed_columns),
-                       dx=datetime.timedelta(days=1),
-                       x_range=Range1d(start=start_date, end=end_date),
+    renamed_df = df.rename(columns=renamed_columns)
+    x_range = Range1d(start=start_date, end=end_date)
+    dx = datetime.timedelta(days=1)
+    plot = TimeBarPlot(df=renamed_df,
+                       dx=dx,
+                       x_range=x_range,
                        y_range=y_range,
                        date_formatter=DatetimeTickFormatter(formats=date_formats),
                        label_orientation=math.pi / 2,
                        alt_y_range=alt_y_range)
 
+    if trend_func:
+        add_trend_curve(plot=plot.plot,
+                        df=renamed_df,
+                        x_min=x_range.start,
+                        x_max=x_range.end,
+                        dx=dx,
+                        trend_func=trend_func)
 
-def monthly_bar_plot(df, start_date, end_date, date_column, month_column, y_column, y_range, alt_y_column=None,
-                     alt_y_range=None):
+    return plot
+
+
+def monthly_bar_plot(df, start_date, end_date, date_column, month_column, y_column, y_range, trend_func,
+                     alt_y_column=None, alt_y_range=None):
     """A bar plot showing data by month.
 
     The data may contain alternative y values. If so, you have to specify both their column name and the value range to
     use for the alternative y axis.
 
     Any date in the start and end month can be used to specify these months.
+
+    An example for `trend_func` would be `functools.partial(month_running_average, ignore_missing_values=False)`. Pass
+    None if there should be no trend line.
 
     Params:
     -------
@@ -295,10 +318,13 @@ def monthly_bar_plot(df, start_date, end_date, date_column, month_column, y_colu
         Name of the column containing the y values to plot.
     y_range : bokeh.models.Range1d
         The value range to use for the y axis.
+    trend_func: function
+        Function to use for calculating trend values. This function must accept a Pandas dataframe (having columns named
+        'x' and 'y') and an x value as its arguments.
     alt_y_column : string, optional
         Name of the column column containing alternative y values.
     alt_y_range : bokeh.models.Range1d, optional
-         The value range to use for the alternative y axis.
+        The value range to use for the alternative y axis.
 
     Returns:
     --------
@@ -321,15 +347,272 @@ def monthly_bar_plot(df, start_date, end_date, date_column, month_column, y_colu
                              date_column=date_column,
                              month_column=month_column)
     renamed_columns = {month_column: 'x', y_column: 'y'}
+    binned_df = binned_df.rename(columns=renamed_columns)
     if alt_y_column:
         renamed_columns[alt_y_column] = 'alt_y'
-    return TimeBarPlot(df=binned_df.rename(columns=renamed_columns),
-                       dx=DX_AVERAGE_MONTH,
-                       x_range=Range1d(start=mid_end_month - months * DX_AVERAGE_MONTH,
-                                       end=mid_end_month),
+    x_range = Range1d(start=mid_end_month - months * DX_AVERAGE_MONTH, end=mid_end_month)
+    dx = DX_AVERAGE_MONTH
+    plot = TimeBarPlot(df=binned_df,
+                       dx=dx,
+                       x_range=x_range,
                        y_range=y_range,
                        date_formatter=DatetimeTickFormatter(formats=date_formats),
                        alt_y_range=alt_y_range)
+
+    if trend_func:
+        add_trend_curve(plot=plot.plot,
+                        df=binned_df,
+                        x_min=x_range.start,
+                        x_max=x_range.end,
+                        dx=dx,
+                        trend_func=trend_func)
+
+    return plot
+
+
+def add_trend_curve(plot, df, x_min, x_max, dx, trend_func):
+    """Add trend curve to a plot.
+
+    Starting with the value `x_min`, trend values are calculated by means of `trend_func` for the values `x + n * dx`
+    in [`x_min`, `x_max`]. Note that it is not guaranteed that any of these values exist in `df`. Thus `trend_func`
+    should calculate meaningful trend values even if its second argument is not contained in `df`.
+
+    Params:
+    -------
+    plot: bokeh.plotting.Figure
+        Plot to which the trend curve is added.
+    df : pandas.DataFrame
+        Data for which the trend curve is generated. The dataframe must have columns named x and y.
+    x_min : number-like
+        Minimum x value for which to calculate a trend. Must be sortable.
+    x_max : number-like
+        Maximum x value for which to calculate a trend. Must be sortable.
+    dx : number-like
+        Spacing between subsequent x values in the trend curve.
+    trend_func: function
+        Trend value. The function must accept a Pandas dataframe and another object as its two arguments. `df` is passed
+        as the first, and an x value as the second argument.
+    """
+
+    if x_min >= x_max:
+        raise ValueError('x_min ({x_min}) must be less than x_max ({x_max}'.format(x_min=x_min, x_max=x_max))
+
+    x_arr = []
+    x = x_min
+    while x <= x_max:
+        x_arr.append(x)
+        x += dx
+    trend_arr = [trend_func(df, x) for x in x_arr]
+
+    plot.line(x=x_arr, y=trend_arr, line_color='green', line_width=3)
+
+
+def running_average_window(date, window_half_width, dt, now):
+    """The window to use for calculating a running average.
+
+    The window is taken to extend from `date - window_half_width` to `date + window_half_width`. However, if the end
+    of this window is equal to or later than `now`, the end is taken to be `now`. If both the start and end are equal to
+    or later than `now`, None is returned.
+
+    Note that `now` is not necessarily the same as `datetime.now().date()`. For example, when dealing with months it
+    should rather be the beginning of the current month.
+
+    Params:
+    -------
+    date: datetime.date
+        Date for which the window is calculated.
+    window_half_width: datetime.timedelta
+        Half the width of the window period. For example, if the window extends over four months, `window_half_width`
+        must be 2.
+    dt: datetime.timedelta
+        Stepsize by which to decrease the window size while the window conflicts with `now`.
+    now: datetime.date
+        The "current date", i.e. the date from which onward no data exists.
+
+    Returns:
+    --------
+    tuple of datetime.date
+        The start and end date of the window.
+
+    Examples:
+    ---------
+    The window lies completely in the past.
+
+    >>> running_average_window(date=datetime.date(2016, 5, 11),\
+                               window_half_width=datetime.timedelta(days=3),\
+                               dt=datetime.timedelta(days=1),\
+                               now=datetime.date(2016, 5, 15))
+    (datetime.date(2016, 5, 8), datetime.date(2016, 5, 14))
+
+    The window lies partly in the future.
+
+    >>> running_average_window(date=datetime.date(2016, 5, 11),\
+                               window_half_width=datetime.timedelta(days=3),\
+                               dt=datetime.timedelta(days=1),\
+                               now=datetime.date(2016, 5, 14))
+    (datetime.date(2016, 5, 8), datetime.date(2016, 5, 13))
+
+    The window lies completely in the future.
+
+    >>> running_average_window(date=datetime.date(2016, 5, 11),\
+                               window_half_width=datetime.timedelta(days=3),\
+                               dt=datetime.timedelta(days=1),\
+                               now=datetime.date(2016, 5, 8))\
+        is None
+    True
+    """
+
+    if dt <= datetime.timedelta(seconds=0):
+        raise ValueError('dt ({dt}) must be positive.'.format(dt=dt))
+
+    window_start = date - window_half_width
+    window_end = date + window_half_width
+
+    # the future has no bearing on the trend
+    if now <= window_start:
+        return None
+    while now <= window_end:
+        window_end -= dt
+
+    return window_start, window_end
+
+
+def month_running_average(df, date, ignore_missing_values):
+    """Running average for monthly bins.
+
+    Params:
+    -------
+    df : pandas.DataFrame
+        Data from which to calculate the running average at `date`. The dataframe must have columns named 'x' and 'y',
+        and the x column must contain dates.
+    date: datetime.date
+        Date for which to calculate the running average.
+    ignore_missing_values: bool
+        Whether to ignore missing values or to assume their y value is 0.
+    """
+
+    now = datetime.datetime.now().date()
+    current_month_start = datetime.date(now.year, now.month, 1)
+    dt = DX_AVERAGE_MONTH
+    window = running_average_window(date=date,
+                                    window_half_width=dt,
+                                    dt=dt,
+                                    now=current_month_start)
+    return running_bin_average(df=df,
+                               window=window,
+                               dx=dt,
+                               ignore_missing_values=ignore_missing_values)
+
+
+def day_running_average(df, date, ignore_missing_values):
+    """Running average for daily bins.
+
+    Params:
+    -------
+    df : pandas.DataFrame
+        Data from which to calculate the running average at `date`. The dataframe must have columns named 'x' and 'y',
+        and the x column must contain dates.
+    date: datetime.date
+        Date for which to calculate the running average.
+    ignore_missing_values: bool
+        Whether to ignore missing values or to assume their y value is 0.
+
+    Return:
+    -------
+    float
+        Running average.
+    """
+
+    now = datetime.datetime.now().date()
+    dt = datetime.timedelta(days=1)
+    window = running_average_window(date=date,
+                                    window_half_width=7 * dt,
+                                    dt=dt,
+                                    now=now)
+    return running_bin_average(df=df,
+                               window=window,
+                               dx=dt,
+                               ignore_missing_values=ignore_missing_values)
+
+
+def running_bin_average(df, window, dx, ignore_missing_values):
+    """Running average of binned data.
+
+    It is assumed that the x values are equidistant, with a distance `dx` between neighbouring values, even though some
+    of these values might be missing in `df`.
+
+    The average is calculated by summing all y values in the interval `[window[0] - 0.1 * dx, window[1] + 0.1 * dx]`
+    and then dividing through the number B of bins in that interval.
+
+    The meaning of B depends on the value of the `ignore_missing_values` flag, If the latter is `True`, B is the
+    number of rows in df whose x column value lies in the interval. Otherwise it is equal to
+    `int(math.round(window / dx)) + 1`. In other words, if `ignore_missing_values` missing x values are assumed to have
+    zero as corresponding y value.
+
+    If the bin count B is zero, 0 is returned as running average.
+
+    Params:
+    -------
+    df : pandas.DataFrame
+        Data from which to calculate the running average at `x`. The dataframe must have columns named 'x' and 'y', and
+        the x column must contain dates.
+    window: tuple of number-like
+        Start and end of the window over which is averaged.
+    dx : number-like
+        Distance between subsequent x values.
+    ignore_missing_values : bool
+        Whether to ignore missing values or to assume their y value is 0.
+
+    Returns:
+    --------
+    float
+        Running average
+
+    Examples:
+    ---------
+    Don't ignore missing values, but treat them as having 0 as y value.
+
+    >>> running_bin_average(df=pandas.DataFrame(dict(x=[1, 3, 5, 9, 11, 15], y=[4, 3, 5, 1, 3, 1])),\
+                            dx=2,\
+                            window=(5, 13),\
+                            ignore_missing_values=False)
+    1.8
+
+    Ignore missing values.
+
+    >>> running_bin_average(df=pandas.DataFrame(dict(x=[1, 3, 5, 9, 11, 15], y=[4, 3, 5, 1, 3, 1])),\
+                            dx=2,\
+                            window=(5, 13),\
+                            ignore_missing_values=True)
+    3.0
+
+    If there are no values, 0 is returned.
+
+    >>> running_bin_average(df=pandas.DataFrame(dict(x=[], y=[])),\
+                            dx=2,\
+                            window=(5, 13),\
+                            ignore_missing_values=True)
+    0
+    """
+
+    start = window[0]
+    end = window[1]
+    if start >= end:
+        raise ValueError('The window start ({start}) must be less than the end ({end}).'.format(start=start, end=end))
+
+    extended_start = start - 0.1 * dx   # the 0.1 * dx is added/subtracted to avoid rounding issues
+    extended_end = end + 0.1 * dx
+
+    window_df = df[(df.x >= extended_start) & (df.x <= extended_end)]
+    if ignore_missing_values:
+        bin_count = len(window_df)
+    else:
+        bin_count = 1 + int(round((end - start) / dx))
+
+    if bin_count == 0:
+        return 0
+
+    return np.sum(window_df.y) / bin_count
 
 
 def day_range(date, days):

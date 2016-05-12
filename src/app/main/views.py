@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 
 from ..main import main
-from ..plot.blocks import BlocksPlots
+from ..plot.blocks import BlockVisitPlots
 from ..plot.plot import TimeBarPlot, DialPlot
 
 
@@ -21,5 +21,6 @@ def home():
     #               display_values=['15 %', '456'])
     # return render_template('dummy.html', db=dp)
 
-    bp = BlocksPlots(datetime.date(2016, 5, 4))
-    return render_template('dummy.html', db=bp.last_night_plot(), mb=bp.monthly_plot(months=6))
+    bp = BlockVisitPlots(datetime.date(2016, 4, 4))
+    plot = bp.monthly_plot(months=6)
+    return render_template('dummy.html', db=bp.daily_plot(31), mb=plot)

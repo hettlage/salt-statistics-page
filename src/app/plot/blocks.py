@@ -1,16 +1,17 @@
 import datetime
+import functools
 import numpy as np
 import pandas as pd
 
 from bokeh.models import Range1d
 from app import db
 from app.plot.plot import DialPlot
-from app.plot.util import daily_bar_plot, day_range, filter_week_to_date, filter_day_before_date,\
-                          monthly_bar_plot, month_range
+from app.plot.util import daily_bar_plot, day_range, day_running_average, filter_week_to_date, filter_day_before_date,\
+                          monthly_bar_plot, month_range, month_running_average
 from app.util import SCIENCE_PROPOSAL_TYPES
 
 
-class BlocksPlots:
+class BlockVisitPlots:
     """Plots displaying the number of block visits.
 
     Params:
@@ -21,7 +22,7 @@ class BlocksPlots:
 
     def __init__(self, date):
         self.date = date
-        start = self.date - datetime.timedelta(days=200)
+        start = self.date - datetime.timedelta(days=300)
         end = self.date + datetime.timedelta(days=150)
 
         sql = """SELECT ni.Date AS Date,
@@ -50,7 +51,6 @@ class BlocksPlots:
                         label_values=range(0, 13),
                         label_color_func=lambda d: '#7f7f7f',
                         display_values=[str(block_visits)])
-
 
     def week_to_date_plot(self):
         """Dial plot displaying the number of block visits in the last week."""
@@ -82,12 +82,15 @@ class BlocksPlots:
         """
 
         start_date, end_date = day_range(self.date, days)
+        trend_func = functools.partial(day_running_average, ignore_missing_values=False)
+
         return daily_bar_plot(df=self.df,
                               start_date=start_date,
                               end_date=end_date,
                               date_column='Date',
                               y_column='BlockCount',
-                              y_range=Range1d(start=0, end=30))
+                              y_range=Range1d(start=0, end=30),
+                              trend_func=trend_func)
 
     def monthly_plot(self, months):
         """Bar plot displaying the number of block visits per momth.
@@ -108,10 +111,12 @@ class BlocksPlots:
         """
 
         start_date, end_date = month_range(self.date, months)
+        trend_func = functools.partial(month_running_average, ignore_missing_values=False)
         return monthly_bar_plot(df=self.df,
                                 start_date=start_date,
                                 end_date=end_date,
                                 date_column='Date',
                                 month_column='Month',
                                 y_column='BlockCount',
-                                y_range=Range1d(start=0, end=300))
+                                y_range=Range1d(start=0, end=300),
+                                trend_func=trend_func)
