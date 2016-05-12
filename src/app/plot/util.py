@@ -14,13 +14,13 @@ def bin_by_date(df, date_column, agg_func=np.sum):
     """Bin data by date.
 
     The data is grouped by dates according to the values of the specified date column, and then the aggregation function
-    is applied to all the groups. The values of the month column of the resulting dataframe are chosen to have the same
-    month as the corresponding dates in the original dataframe.
+    is applied to all the groups. The values of the month column of the resulting data frame are chosen to have the same
+    month as the corresponding dates in the original data frame.
 
     A date starts and ends at midnight. This implies that you might have to shift your dates by 12 hours before
-    passing the dataframe to this function.
+    passing the data frame to this function.
 
-    Note that in the returned dataframe the date column technically will have been replaced with a new column of dates
+    Note that in the returned data frame the date column technically will have been replaced with a new column of dates
     without a time component.
 
     Params:
@@ -55,13 +55,13 @@ def bin_by_month(df, date_column, month_column, agg_func=np.sum):
     """Bin data by month.
 
     The data is grouped by month according to the values of the specified date column, and then the aggregation function
-    is applied to all the groups. The values of the month column of the resulting dataframe is chosen to have the same
-    month as the corresponding dates in the original dataframe.
+    is applied to all the groups. The values of the month column of the resulting data frame is chosen to have the same
+    month as the corresponding dates in the original data frame.
 
     A month starts and ends at midnight. This implies that you might have to shift your dates by 12 hours before
-    passing the dataframe to this function.
+    passing the data frame to this function.
 
-    Note that in the returned dataframe the date column will have been replaced by the month column. The dates in this
+    Note that in the returned data frame the date column will have been replaced by the month column. The dates in this
     new column have no time component.
 
     Params:
@@ -108,15 +108,15 @@ DX_AVERAGE_MONTH = datetime.timedelta(seconds=365.25 * 24 * 3600 / 12)  # averag
 def bin_by_semester(df, date_column, semester_column, agg_func=np.sum):
     """Bin data by semester.
 
-    The dataframe data is grouped by semester according to the values of the specified date column, and then the
-    aggregation function is applied to all the groups. The values of the semester column of the resulting dataframe
-    are chosen to have the same semester as the corresponding dates in the original dataframe.
+    The data frame data is grouped by semester according to the values of the specified date column, and then the
+    aggregation function is applied to all the groups. The values of the semester column of the resulting data frame
+    are chosen to have the same semester as the corresponding dates in the original data frame.
 
     Semesters run from 1 May to 31 October (semester 1), and from 1 November to 30 April (semester 2). They start and
-    end at midnight. This implies that you might have to shift your dates by 12 hours before passing the dataframe to
+    end at midnight. This implies that you might have to shift your dates by 12 hours before passing the data frame to
     this function.
 
-    Note that in the returned dataframe the date column will have been replaced by the semester column. This column
+    Note that in the returned data frame the date column will have been replaced by the semester column. This column
     contains strings of the form 'yyyy-d', with yyyy being the year and d being the semester (i.e. 1 or 2).
 
     Params:
@@ -156,7 +156,7 @@ def filter_days_to_date(df, date, days, date_column):
     Params:
     -------
     df : pandas.DataFrame
-        Data to filter. The dataframe must have a column with dates (i.e. `datetime.date` instances).
+        Data to filter. The data frame must have a column with dates (i.e. `datetime.date` instances).
     date: datetime.date
         Date relative to which the data is filtered.
     days : int
@@ -195,7 +195,7 @@ def filter_day_before_date(df, date, date_column):
     Params:
     -------
     df : pandas.DataFrame
-        Data to filter. The dataframe must have a column with dates (i.e. `datetime.date` instances).
+        Data to filter. The data frame must have a column with dates (i.e. `datetime.date` instances).
     date: datetime.date
         Date relative to which the data is filtered.
     date_column : str
@@ -214,7 +214,7 @@ def filter_week_to_date(df, date, date_column):
     Params:
     -------
     df : pandas.DataFrame
-        Data to filter. The dataframe must have a column with dates (i.e. `datetime.date` instances).
+        Data to filter. The data frame must have a column with dates (i.e. `datetime.date` instances).
     date: datetime.date
         Date relative to which the data is filtered.
     date_column : str
@@ -222,6 +222,33 @@ def filter_week_to_date(df, date, date_column):
     """
 
     return filter_days_to_date(df=df, date=date, days=7, date_column=date_column)
+
+
+def value_last_night(df, date, date_column, value_column):
+    """Aggregate value of a data frame column for the date preceding a given date.
+
+    The data frame is filtered to only have rows with the date preceding `date`, and the values of the `value_column`
+    column are summed for the remaining rows.
+
+    Params:
+    -------
+    df : pandas.DataFrame
+        Data.
+    date : datetime.date
+        Date.
+    date_column : str
+        Name of the column containing the dates.
+    value_column : str
+        Name of the column containing the values to consider.
+
+    Returns:
+    --------
+    float
+        The aggregate value for the date preceding `date`.
+    """
+
+    last_night = filter_day_before_date(df=df, date=date, date_column=date_column)
+    return np.sum(last_night[value_column])
 
 
 def daily_bar_plot(df, start_date, end_date, date_column, y_column, y_range, trend_func,
@@ -249,7 +276,7 @@ def daily_bar_plot(df, start_date, end_date, date_column, y_column, y_range, tre
     y_range : bokeh.models.Range1d
         The value range to use for the y axis.
     trend_func: function
-        Function to use for calculating trend values. This function must accept a Pandas dataframe (having columns named
+        Function to use for calculating trend values. This function must accept a Pandas data frame (having columns named
         'x' and 'y') and an x value as its arguments.
     alt_y_column : string, optional
         Name of the column column containing alternative y values.
@@ -319,7 +346,7 @@ def monthly_bar_plot(df, start_date, end_date, date_column, month_column, y_colu
     y_range : bokeh.models.Range1d
         The value range to use for the y axis.
     trend_func: function
-        Function to use for calculating trend values. This function must accept a Pandas dataframe (having columns named
+        Function to use for calculating trend values. This function must accept a Pandas data frame (having columns named
         'x' and 'y') and an x value as its arguments.
     alt_y_column : string, optional
         Name of the column column containing alternative y values.
@@ -382,7 +409,7 @@ def add_trend_curve(plot, df, x_min, x_max, dx, trend_func):
     plot: bokeh.plotting.Figure
         Plot to which the trend curve is added.
     df : pandas.DataFrame
-        Data for which the trend curve is generated. The dataframe must have columns named x and y.
+        Data for which the trend curve is generated. The data frame must have columns named x and y.
     x_min : number-like
         Minimum x value for which to calculate a trend. Must be sortable.
     x_max : number-like
@@ -390,7 +417,7 @@ def add_trend_curve(plot, df, x_min, x_max, dx, trend_func):
     dx : number-like
         Spacing between subsequent x values in the trend curve.
     trend_func: function
-        Trend value. The function must accept a Pandas dataframe and another object as its two arguments. `df` is passed
+        Trend value. The function must accept a Pandas data frame and another object as its two arguments. `df` is passed
         as the first, and an x value as the second argument.
     """
 
@@ -483,7 +510,7 @@ def month_running_average(df, date, ignore_missing_values):
     Params:
     -------
     df : pandas.DataFrame
-        Data from which to calculate the running average at `date`. The dataframe must have columns named 'x' and 'y',
+        Data from which to calculate the running average at `date`. The data frame must have columns named 'x' and 'y',
         and the x column must contain dates.
     date: datetime.date
         Date for which to calculate the running average.
@@ -510,7 +537,7 @@ def day_running_average(df, date, ignore_missing_values):
     Params:
     -------
     df : pandas.DataFrame
-        Data from which to calculate the running average at `date`. The dataframe must have columns named 'x' and 'y',
+        Data from which to calculate the running average at `date`. The data frame must have columns named 'x' and 'y',
         and the x column must contain dates.
     date: datetime.date
         Date for which to calculate the running average.
@@ -554,7 +581,7 @@ def running_bin_average(df, window, dx, ignore_missing_values):
     Params:
     -------
     df : pandas.DataFrame
-        Data from which to calculate the running average at `x`. The dataframe must have columns named 'x' and 'y', and
+        Data from which to calculate the running average at `x`. The data frame must have columns named 'x' and 'y', and
         the x column must contain dates.
     window: tuple of number-like
         Start and end of the window over which is averaged.
@@ -729,3 +756,49 @@ def semester(date):
         return '{0}-{1}'.format(year, 1)
     else:
         return '{0}-{1}'.format(year, 2)
+
+
+def good_mediocre_bad_color_func(good_limit, bad_limit):
+    """Generate the function for deciding what color to use for good, mediocre and bad values.
+
+    Params:
+    -------
+    good_limit : float
+        Largest or smallest (depending on whether `bad_limit` is larger than `good_limit`) value for which values
+        are considered to be good.
+    bad_limit : float
+        Largest or smallest (depending on whether `good_limit` is larger than `bad_limit`) value for which values
+        are considered to be bad.
+
+    Returns:
+    --------
+    function:
+        Function for mapping a value to a color.
+    """
+
+    good_color = '#19af54'
+    mediocre_color = '#fdbf2d'
+    bad_color = '#fc0d1b'
+
+    if good_limit < bad_limit:
+        first_limit = good_limit
+        second_limit = bad_limit
+        first_color = good_color
+        second_color = mediocre_color
+        third_color = bad_color
+    else:
+        first_limit = bad_limit
+        second_limit = good_limit
+        first_color = bad_color
+        second_color = mediocre_color
+        third_color = good_color
+
+    def f(x):
+        if x < first_limit:
+            return first_color
+        elif x < second_limit:
+            return second_color
+        else:
+            return third_color
+
+    return f

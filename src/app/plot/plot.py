@@ -65,7 +65,7 @@ class TimeBarPlot(Plot):
     Parameters:
     -----------
     df : pandas.DataFrame
-        A dataframe of the data to plot. The dataframe must at least contain columns named `x` (for the dates), `y`
+        A data frame of the data to plot. The data frame must at least contain columns named `x` (for the dates), `y`
         (for the y values) and, if an alternative y value range is passed as parameter, `alt_y` (for the alternative y
         values). The data is assumed to be for equidistant dates, but it is perfectly acceptable to leave out dates.
     dx : datetime.timedelta
@@ -375,7 +375,7 @@ class DialPlot(Plot):
                            text=self.display_values,
                            text_align='center',
                            text_baseline='middle',
-                           text_font_size='150%',
+                           text_font_size='200%',
                            text_font_style='bold')
         else:
             self.plot.text(x=display_x,

@@ -1,14 +1,13 @@
 import datetime
 import functools
 import numpy as np
-import pandas as pd
 
 from bokeh.models import Range1d
 from app import db
 from app.plot.plot import DialPlot
-from app.plot.util import daily_bar_plot, day_range, day_running_average, filter_week_to_date, filter_day_before_date,\
-                          monthly_bar_plot, month_range, month_running_average
-from app.util import SCIENCE_PROPOSAL_TYPES
+from app.plot.queries import DateRangeQueries
+from app.plot.util import daily_bar_plot, day_range, day_running_average, filter_week_to_date,\
+                          monthly_bar_plot, month_range, month_running_average, value_last_night
 
 
 class BlockVisitPlots:
@@ -25,28 +24,12 @@ class BlockVisitPlots:
         start = self.date - datetime.timedelta(days=300)
         end = self.date + datetime.timedelta(days=150)
 
-        sql = """SELECT ni.Date AS Date,
-        COUNT(BlockVisit_Id) AS BlockCount
-    FROM NightInfo AS ni
-    JOIN BlockVisit AS bv USING (NightInfo_Id)
-    JOIN Block AS b USING (Block_Id)
-    JOIN Proposal AS p USING (Proposal_Id)
-    JOIN ProposalType AS pt USING (ProposalType_Id)
-    WHERE bv.Accepted=1
-    AND pt.ProposalType IN {proposal_types}
-    AND (ni.Date BETWEEN DATE('{start_date}') AND DATE('{end_date}'))
-    GROUP BY DATE
-       """.format(proposal_types=SCIENCE_PROPOSAL_TYPES,
-                  start_date=start.strftime('%Y-%m-%d'),
-                  end_date=end.strftime('%Y-%m-%d'))
-        self.df = pd.read_sql(sql, db.engine)
+        self.df = DateRangeQueries(start, end, db.engine).block_visits()
 
     def last_night_plot(self):
         """Dial plot displaying the number of block visits for last night."""
 
-        last_night = filter_day_before_date(self.df, self.date, 'Date')
-        block_visits = np.sum(last_night.BlockCount)
-
+        block_visits = value_last_night(df=self.df, date=self.date, date_column='Date', value_column='BlockCount')
         return DialPlot(values=[block_visits],
                         label_values=range(0, 13),
                         label_color_func=lambda d: '#7f7f7f',
