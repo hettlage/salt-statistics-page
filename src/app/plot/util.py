@@ -251,7 +251,34 @@ def value_last_night(df, date, date_column, value_column):
     return np.sum(last_night[value_column])
 
 
-def daily_bar_plot(df, start_date, end_date, date_column, y_column, y_range, trend_func,
+def value_last_week(df, date, date_column, value_column):
+    """Aggregate value of a data frame column for the seven days leading up to but excluding a given date.
+
+    The data frame is filtered to only have rows with the date within the seven days preceding `date`, and the values of
+    the `value_column` column are summed for the remaining rows.
+
+    Params:
+    -------
+    df : pandas.DataFrame
+        Data.
+    date : datetime.date
+        Date.
+    date_column : str
+        Name of the column containing the dates.
+    value_column : str
+        Name of the column containing the values to consider.
+
+    Returns:
+    --------
+    float
+        The aggregate value for the seven days preceding `date`.
+    """
+
+    last_week = filter_week_to_date(df=df, date=date, date_column=date_column)
+    return np.sum(last_week[value_column])
+
+
+def daily_bar_plot(df, start_date, end_date, date_column, y_column, y_range, trend_func, y_formatters=(),
                    alt_y_column=None, alt_y_range=None):
     """A bar plot showing data by date.
 
@@ -276,8 +303,11 @@ def daily_bar_plot(df, start_date, end_date, date_column, y_column, y_range, tre
     y_range : bokeh.models.Range1d
         The value range to use for the y axis.
     trend_func: function
-        Function to use for calculating trend values. This function must accept a Pandas data frame (having columns named
-        'x' and 'y') and an x value as its arguments.
+        Function to use for calculating trend values. This function must accept a Pandas data frame (having columns
+        named 'x' and 'y') and an x value as its arguments.
+    y_formatters : sequence of bokeh.models.formatters.TickFormatter, optional
+        The formatters to use for the y axes. If there are more axes than formatters, the last formatter in the
+        sequence is used for the remaining axes.
     alt_y_column : string, optional
         Name of the column column containing alternative y values.
     alt_y_range : bokeh.models.Range1d, optional
@@ -324,7 +354,7 @@ def daily_bar_plot(df, start_date, end_date, date_column, y_column, y_range, tre
 
 
 def monthly_bar_plot(df, start_date, end_date, date_column, month_column, y_column, y_range, trend_func,
-                     alt_y_column=None, alt_y_range=None):
+                     y_formatters=(), alt_y_column=None, alt_y_range=None):
     """A bar plot showing data by month.
 
     The data may contain alternative y values. If so, you have to specify both their column name and the value range to
@@ -352,6 +382,9 @@ def monthly_bar_plot(df, start_date, end_date, date_column, month_column, y_colu
     trend_func: function
         Function to use for calculating trend values. This function must accept a Pandas data frame (having columns named
         'x' and 'y') and an x value as its arguments.
+    y_formatters : sequence of bokeh.models.formatters.TickFormatter
+        The formatters to use for the y axes. If there are more axes than formatters, the last formatter in the
+        sequence is used for the remaining axes.
     alt_y_column : string, optional
         Name of the column column containing alternative y values.
     alt_y_range : bokeh.models.Range1d, optional
@@ -388,6 +421,7 @@ def monthly_bar_plot(df, start_date, end_date, date_column, month_column, y_colu
                        x_range=x_range,
                        y_range=y_range,
                        date_formatter=DatetimeTickFormatter(formats=date_formats),
+                       y_formatters=y_formatters,
                        alt_y_range=alt_y_range)
 
     if trend_func:

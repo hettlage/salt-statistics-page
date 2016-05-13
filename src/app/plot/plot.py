@@ -77,6 +77,9 @@ class TimeBarPlot(Plot):
         The value range to use for the y axis.
     date_formatter : bokeh.models.formatters.DatetimeTickFormatter
         The formatter to use for the labels of the date axis.
+    y_formatters : sequence of bokeh.models.formatters.TickFormatter
+        The formatters to use for the y axes. If there are more axes than formatters, the last formatter in the
+        sequence is used for the remaining axes.
     x_label_orientation : str or float, optional
         The orientation of the date axis labels. Possible values are `'horizontal'`, `'vertical'` or an angle in
         radians. The default is `'horizontal'`.
@@ -102,6 +105,7 @@ class TimeBarPlot(Plot):
                  x_range,
                  y_range,
                  date_formatter,
+                 y_formatters=(),
                  label_orientation='horizontal',
                  label_font_size='10pt',
                  alt_y_range=None,
@@ -143,6 +147,7 @@ class TimeBarPlot(Plot):
         self.y_range = y_range
         self.alt_y_range = alt_y_range
         self.date_formatter = date_formatter
+        self.y_formatters = y_formatters
         self.x_label_orientation = label_orientation
         self.label_font_size = label_font_size
 
@@ -262,6 +267,11 @@ class TimeBarPlot(Plot):
         p.xaxis.major_tick_out = 0
         p.xaxis.major_label_orientation = self.x_label_orientation
         p.axis.major_label_text_font_size = self.label_font_size
+
+        # y axes formatters
+        if len(self.y_formatters):
+            for i, y_axis in enumerate(p.yaxis):
+                y_axis.formatter = self.y_formatters[min(i, len(self.y_formatters) - 1)]
 
 
 class DialPlot(Plot):
