@@ -293,6 +293,9 @@ def daily_bar_plot(df, start_date, end_date, date_column, y_column, y_range, tre
         raise ValueError('The start date ({start_date}) must be before the end date ({end_date}'
                          .format(start_date=start_date, end_date=end_date))
 
+    if y_column == alt_y_column:
+        raise ValueError('The values of y_column and the alt_y_column must not be the same.')
+
     date_formats = dict(hours=['%d'], days=['%d'], months=['%d'], years=['%d'])
     renamed_columns = {date_column: 'x', y_column: 'y'}
     if alt_y_column:
@@ -305,6 +308,7 @@ def daily_bar_plot(df, start_date, end_date, date_column, y_column, y_range, tre
                        x_range=x_range,
                        y_range=y_range,
                        date_formatter=DatetimeTickFormatter(formats=date_formats),
+                       y_formatters=y_formatters,
                        label_orientation=math.pi / 2,
                        alt_y_range=alt_y_range)
 
