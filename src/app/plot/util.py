@@ -865,3 +865,17 @@ def good_mediocre_bad_color_func(good_limit, bad_limit):
             return third_color
 
     return f
+
+
+def neutral_color_func(x):
+    """Returns the color used to indicate "neutral" values, i.e. values which aren't classified as bad, medioocre or
+    good.
+
+    Params:
+    -------
+    x: any
+        Value, which is ignored. This argument is included only because the consumers using this function are expecting
+        it to exist.
+    """
+
+    return '#7f7f7f'
