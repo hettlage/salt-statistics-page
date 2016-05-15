@@ -109,9 +109,7 @@ class OperationEfficiencyPlots:
                               y_column='OperationEfficiency',
                               y_range=Range1d(start=0, end=140),
                               trend_func=trend_func,
-                              y_formatters=[PrintfTickFormatter(format='%dm')],
-                              alt_y_column='OperationEfficiency2',
-                              alt_y_range=Range1d(start=0, end=1.4),
+                              y_formatters=[PrintfTickFormatter(format='%d%%')],
                               **self.kwargs)
 
     def monthly_plot(self, months):
@@ -129,7 +127,7 @@ class OperationEfficiencyPlots:
         Returns:
         --------
         app.plot.plot.TimeBarPlot
-            Plot of number of block visits as a function of the month.
+            Plot of operation efficiency as a function of the month.
         """
 
         start_date, end_date = month_range(self.date, months)
@@ -144,7 +142,7 @@ class OperationEfficiencyPlots:
                                 date_column='Date',
                                 month_column='Month',
                                 y_column='OperationEfficiency',
-                                y_range=Range1d(start=0, end=300),
+                                y_range=Range1d(start=0, end=120),
                                 trend_func=trend_func,
                                 post_binning_func=post_binning_func,
                                 **self.kwargs)
