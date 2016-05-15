@@ -60,8 +60,6 @@ class Plot:
 class TimeBarPlot(Plot):
     """A bar plot for plotting bars for a list of dates.
 
-    Parameters not listed below are passed on to the __init__ method of the parent class.
-
     Parameters:
     -----------
     df : pandas.DataFrame
@@ -89,6 +87,8 @@ class TimeBarPlot(Plot):
     alt_y_range : bokeh.models.Range1d, optional
         The value range to use for the alternative y axis. This value must be supplied if `df` has an `alt_y` column,
         and vice versa.
+    **kwargs: keyword arguments
+        Additional keyword arguments are passed on the `Plot` constructor.
     """
 
     PRIMARY_COLOR = 'blue'
@@ -290,9 +290,10 @@ class DialPlot(Plot):
         function is used for deciding what color to use for the wedge sections between labels.
     display_values: list of str
         Values to show on the value display. The first value is assumed to be the primary one.
-
-    Parameters not listed below are passed on to the __init__ method of the parent class.
+    **kwargs: keyword arguments
+        Additional keyword arguments are passed on the `Plot` constructor.
     """
+
     def __init__(self, values, label_values, label_color_func, display_values, **kwargs):
         Plot.__init__(self, **kwargs)
         self.values = values

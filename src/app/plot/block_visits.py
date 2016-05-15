@@ -18,12 +18,16 @@ class BlockVisitPlots:
     -------
     date : datetime.date
         The date for which to generate the plots.
+    **kwargs: keyword arguments
+        Additional keyword arguments are passed on to the function or constructor creating a plot.
     """
 
-    def __init__(self, date):
+    def __init__(self, date, **kwargs):
         self.date = date
         start = self.date - datetime.timedelta(days=300)
         end = self.date + datetime.timedelta(days=150)
+
+        self.kwargs = kwargs
 
         self.df = DateRangeQueries(start, end, db.engine).block_visits()
 
@@ -34,7 +38,8 @@ class BlockVisitPlots:
         return DialPlot(values=[block_visits],
                         label_values=range(0, 13),
                         label_color_func=lambda d: '#7f7f7f',
-                        display_values=[str(block_visits)])
+                        display_values=[str(block_visits)],
+                        **self.kwargs)
 
     def week_to_date_plot(self):
         """Dial plot displaying the number of block visits in the seven days leading up to but excluding `self.date`."""
@@ -43,7 +48,8 @@ class BlockVisitPlots:
         return DialPlot(values=[block_visits],
                         label_values=range(0, 71, 10),
                         label_color_func=lambda d: '#7f7f7f',
-                        display_values=[str(block_visits)])
+                        display_values=[str(block_visits)],
+                        **self.kwargs)
 
     def daily_plot(self, days):
         """Bar plot displaying the number of block visits per day.
@@ -72,14 +78,15 @@ class BlockVisitPlots:
                               date_column='Date',
                               y_column='BlockCount',
                               y_range=Range1d(start=0, end=30),
-                              trend_func=trend_func)
+                              trend_func=trend_func,
+                              **self.kwargs)
 
     def monthly_plot(self, months):
         """Bar plot displaying the number of block visits per momth.
 
         The number of block visits is shown for the `months` months leading to but excluding the month containing
-        `self.date`. A month here refers start at noon of the first of the month. For May 2016 refers to the period from
-        1 May 2016, 12:00 to 1 June 2016, 12:00.
+        `self.date`. A month here refers start at noon of the first of the month. For example,  May 2016 refers to the
+        period from 1 May 2016, 12:00 to 1 June 2016, 12:00.
 
         Params:
         -------
@@ -101,4 +108,5 @@ class BlockVisitPlots:
                                 month_column='Month',
                                 y_column='BlockCount',
                                 y_range=Range1d(start=0, end=300),
-                                trend_func=trend_func)
+                                trend_func=trend_func,
+                                **self.kwargs)

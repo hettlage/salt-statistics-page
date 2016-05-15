@@ -279,7 +279,7 @@ def value_last_week(df, date, date_column, value_column):
 
 
 def daily_bar_plot(df, start_date, end_date, date_column, y_column, y_range, trend_func, y_formatters=(),
-                   alt_y_column=None, alt_y_range=None):
+                   alt_y_column=None, alt_y_range=None, **kwargs):
     """A bar plot showing data by date.
 
     The data may contain alternative y values. If so, you have to specify both their column name and the value range to
@@ -311,7 +311,10 @@ def daily_bar_plot(df, start_date, end_date, date_column, y_column, y_range, tre
     alt_y_column : string, optional
         Name of the column column containing alternative y values.
     alt_y_range : bokeh.models.Range1d, optional
-         The value range to use for the alternative y axis.
+        The value range to use for the alternative y axis.
+    **kwargs: keyword arguments
+        Additional keyword arguments are passed on the `TimeBarPlot` constructor.
+
 
     Returns:
     --------
@@ -340,7 +343,8 @@ def daily_bar_plot(df, start_date, end_date, date_column, y_column, y_range, tre
                        date_formatter=DatetimeTickFormatter(formats=date_formats),
                        y_formatters=y_formatters,
                        label_orientation=math.pi / 2,
-                       alt_y_range=alt_y_range)
+                       alt_y_range=alt_y_range,
+                       **kwargs)
 
     if trend_func:
         add_trend_curve(plot=plot.plot,
@@ -402,6 +406,8 @@ def monthly_bar_plot(df, start_date, end_date, date_column, month_column, y_colu
         Name of the column column containing alternative y values.
     alt_y_range : bokeh.models.Range1d, optional
         The value range to use for the alternative y axis.
+    **kwargs: keyword arguments
+        Additional keyword arguments are passed on the `TimeBarPlot` constructor.
 
     Returns:
     --------
@@ -440,7 +446,8 @@ def monthly_bar_plot(df, start_date, end_date, date_column, month_column, y_colu
                        y_range=y_range,
                        date_formatter=DatetimeTickFormatter(formats=date_formats),
                        y_formatters=y_formatters,
-                       alt_y_range=alt_y_range)
+                       alt_y_range=alt_y_range,
+                       **kwargs)
 
     if trend_func:
         add_trend_curve(plot=plot.plot,
