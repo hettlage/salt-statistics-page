@@ -60,7 +60,8 @@ class OperationEfficiencyPlots:
         return DialPlot(values=[observation_efficiency],
                         label_values=range(0, 151, 10),
                         label_color_func=label_color_func,
-                        display_values=[str(round(observation_efficiency, 1)) + '%'])
+                        display_values=[str(round(observation_efficiency, 1)) + '%'],
+                        **self.kwargs)
 
     def week_to_date_plot(self):
         """Dial plot displaying the operation efficiency for the seven days leading up to but excluding `self.date`."""
