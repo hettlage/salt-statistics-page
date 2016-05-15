@@ -354,7 +354,7 @@ def daily_bar_plot(df, start_date, end_date, date_column, y_column, y_range, tre
 
 
 def monthly_bar_plot(df, start_date, end_date, date_column, month_column, y_column, y_range, trend_func,
-                     y_formatters=(), alt_y_column=None, alt_y_range=None):
+                     post_binning_func=None, y_formatters=(), alt_y_column=None, alt_y_range=None, **kwargs):
     """A bar plot showing data by month.
 
     The data may contain alternative y values. If so, you have to specify both their column name and the value range to
@@ -364,6 +364,16 @@ def monthly_bar_plot(df, start_date, end_date, date_column, month_column, y_colu
 
     An example for `trend_func` would be `functools.partial(month_running_average, ignore_missing_values=False)`. Pass
     None if there should be no trend line.
+
+    The `post_binning_func` function is applied to the data frame after binning, but before plotting it. One example
+    where to use it is if you are considering a ratio of a values in two columns a and b. In this case the ration for
+    a month should calculated by dividing the binned values for a and b. This can be achieved by passing the followingf
+    function as `post_binning_func`.::
+
+        def f(df):
+            df['ratio'] = np.divide(df.a, df.b)
+
+    'ratio' would then be used a value of the `y_column` parameter.
 
     Params:
     -------
@@ -380,8 +390,11 @@ def monthly_bar_plot(df, start_date, end_date, date_column, month_column, y_colu
     y_range : bokeh.models.Range1d
         The value range to use for the y axis.
     trend_func: function
-        Function to use for calculating trend values. This function must accept a Pandas data frame (having columns named
-        'x' and 'y') and an x value as its arguments.
+        Function to use for calculating trend values. This function must accept a Pandas data frame (having columns
+        named 'x' and 'y') and an x value as its arguments.
+    post_binning_func: function
+        Function for modfifying the binned data frame. The function should accept a data frame as its only argument.
+        The default is `None`, which means that the binned data frame isn't modified.
     y_formatters : sequence of bokeh.models.formatters.TickFormatter
         The formatters to use for the y axes. If there are more axes than formatters, the last formatter in the
         sequence is used for the remaining axes.
@@ -410,6 +423,11 @@ def monthly_bar_plot(df, start_date, end_date, date_column, month_column, y_colu
     binned_df = bin_by_month(df=df,
                              date_column=date_column,
                              month_column=month_column)
+
+    # apply post binning function
+    if post_binning_func:
+        post_binning_func(binned_df)
+
     renamed_columns = {month_column: 'x', y_column: 'y'}
     binned_df = binned_df.rename(columns=renamed_columns)
     if alt_y_column:
