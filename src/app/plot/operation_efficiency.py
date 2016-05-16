@@ -62,11 +62,11 @@ class OperationEfficiencyPlots:
         science_time = value_last_night(df=self.df, date=self.date, date_column='Date', value_column='ScienceTime')
         operation_efficiency = self._observation_efficiency(obs_time, science_time)
 
-        label_color_func = good_mediocre_bad_color_func(bad_limit=80, good_limit=90)
+        dial_color_func = good_mediocre_bad_color_func(bad_limit=80, good_limit=90)
 
         return DialPlot(values=[operation_efficiency],
                         label_values=range(0, 151, 10),
-                        label_color_func=label_color_func,
+                        dial_color_func=dial_color_func,
                         display_values=['{:.1f}%'.format(operation_efficiency)],
                         **self.kwargs)
 
@@ -83,11 +83,11 @@ class OperationEfficiencyPlots:
         science_time = value_last_week(df=self.df, date=self.date, date_column='Date', value_column='ScienceTime')
         operation_efficiency = self._observation_efficiency(obs_time, science_time)
 
-        label_color_func = good_mediocre_bad_color_func(bad_limit=80, good_limit=90)
+        dial_color_func = good_mediocre_bad_color_func(bad_limit=80, good_limit=90)
 
         return DialPlot(values=[operation_efficiency],
                         label_values=range(0, 151, 10),
-                        label_color_func=label_color_func,
+                        dial_color_func=dial_color_func,
                         display_values=['{:.1f}%'.format(operation_efficiency)],
                         **self.kwargs)
 
@@ -181,7 +181,7 @@ class OperationEfficiencyPlots:
         else:
             operation_efficiency = 0
 
-        label_color_func = good_mediocre_bad_color_func(good_limit=90, bad_limit=80)
+        dial_color_func = good_mediocre_bad_color_func(good_limit=90, bad_limit=80)
 
         required_operation_efficiency = required_for_semester_average(date=self.date,
                                                                       average=operation_efficiency,
@@ -189,7 +189,7 @@ class OperationEfficiencyPlots:
 
         return DialPlot(values=[operation_efficiency, required_operation_efficiency],
                         label_values=range(0, 101, 10),
-                        label_color_func=label_color_func,
+                        dial_color_func=dial_color_func,
                         display_values=['{:.1f}%'.format(operation_efficiency)],
                         **self.kwargs)
 

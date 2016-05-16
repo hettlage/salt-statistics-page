@@ -59,7 +59,7 @@ class ShutterOpenEfficiencyPlots:
 
         return DialPlot(values=[shutter_open_efficiency],
                         label_values=range(0, 151, 10),
-                        label_color_func=neutral_color_func,
+                        dial_color_func=neutral_color_func,
                         display_values=[str(round(shutter_open_efficiency, 1)) + '%'])
 
     def week_to_date_plot(self):
@@ -72,7 +72,7 @@ class ShutterOpenEfficiencyPlots:
 
         return DialPlot(values=[shutter_open_efficiency],
                         label_values=range(0, 151, 10),
-                        label_color_func=neutral_color_func,
+                        dial_color_func=neutral_color_func,
                         display_values=[str(round(shutter_open_efficiency, 1)) + '%'],
                         **self.kwargs)
 
@@ -166,11 +166,11 @@ class ShutterOpenEfficiencyPlots:
         else:
             shutter_open_efficiency = 0
 
-        label_color_func = neutral_color_func
+        dial_color_func = neutral_color_func
 
         return DialPlot(values=[shutter_open_efficiency],
                         label_values=range(0, 101, 10),
-                        label_color_func=label_color_func,
+                        dial_color_func=dial_color_func,
                         display_values=['{:.1f}%'.format(shutter_open_efficiency)],
                         **self.kwargs)
 

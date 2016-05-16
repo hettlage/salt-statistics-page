@@ -285,7 +285,7 @@ class DialPlot(Plot):
         Values to use for the hand(s). The first value is assumed to be the primary one.
     label_values: list of str
         Values to use for the dial labels.
-    label_color_func: function
+    dial_color_func: function
         Function mapping a value to a string denoting a colour, as you would use it for the CSS color attribute. This
         function is used for deciding what color to use for the wedge sections between labels.
     display_values: list of str
@@ -294,11 +294,11 @@ class DialPlot(Plot):
         Additional keyword arguments are passed on the `Plot` constructor.
     """
 
-    def __init__(self, values, label_values, label_color_func, display_values, **kwargs):
+    def __init__(self, values, label_values, dial_color_func, display_values, **kwargs):
         Plot.__init__(self, **kwargs)
         self.values = values
         self.label_values = label_values
-        self.label_color_func = label_color_func
+        self.dial_color_func = dial_color_func
         self.display_values = display_values
 
         self._init_plot()
@@ -335,7 +335,7 @@ class DialPlot(Plot):
 
         start_angle = [angle_func(self.label_values[i]) for i in range(0, len(self.label_values) - 1)]
         end_angle = [angle_func(self.label_values[i]) for i in range(1, len(self.label_values))]
-        fill_color = [self.label_color_func(0.5 * (self.label_values[i] + self.label_values[i + 1]))
+        fill_color = [self.dial_color_func(0.5 * (self.label_values[i] + self.label_values[i + 1]))
                       for i in range(0, len(self.label_values) - 1)]
 
         # angular segment underneath the value display
