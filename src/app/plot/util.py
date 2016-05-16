@@ -7,8 +7,9 @@ from bokeh.models import Line, Range1d
 from bokeh.models.formatters import DatetimeTickFormatter
 from dateutil import parser
 
+from app import db
 from app.plot.plot import TimeBarPlot
-
+from app.plot.queries import DateRangeQueries
 
 def bin_by_date(df, date_column, agg_func=np.sum):
     """Bin data by date.
@@ -51,7 +52,7 @@ def bin_by_date(df, date_column, agg_func=np.sum):
     return grouped
 
 
-def bin_by_month(df, date_column, month_column, agg_func=np.sum):
+def bin_by_month(df, cutoff_date, date_column, month_column, agg_func=np.sum):
     """Bin data by month.
 
     The data is grouped by month according to the values of the specified date column, and then the aggregation function
@@ -60,6 +61,8 @@ def bin_by_month(df, date_column, month_column, agg_func=np.sum):
 
     A month starts and ends at midnight. This implies that you might have to shift your dates by 12 hours before
     passing the data frame to this function.
+
+    Values are included only if their date is earlier than `cutoff_date`.
 
     Note that in the returned data frame the date column will have been replaced by the month column. The dates in this
     new column have no time component.
@@ -79,6 +82,8 @@ def bin_by_month(df, date_column, month_column, agg_func=np.sum):
     pandas.DataFrame
         The binned data.
     """
+
+    df = df[df[date_column] < cutoff_date]
 
     def month(x):
         d = df[date_column].loc[x]
@@ -105,7 +110,7 @@ def bin_by_month(df, date_column, month_column, agg_func=np.sum):
 DX_AVERAGE_MONTH = datetime.timedelta(seconds=365.25 * 24 * 3600 / 12)  # average month length
 
 
-def bin_by_semester(df, date_column, semester_column, agg_func=np.sum):
+def bin_by_semester(df, cutoff_date, date_column, semester_column, agg_func=np.sum):
     """Bin data by semester.
 
     The data frame data is grouped by semester according to the values of the specified date column, and then the
@@ -115,6 +120,8 @@ def bin_by_semester(df, date_column, semester_column, agg_func=np.sum):
     Semesters run from 1 May to 31 October (semester 1), and from 1 November to 30 April (semester 2). They start and
     end at midnight. This implies that you might have to shift your dates by 12 hours before passing the data frame to
     this function.
+
+    Values are included only if their date is earlier than `cutoff_date`.
 
     Note that in the returned data frame the date column will have been replaced by the semester column. This column
     contains strings of the form 'yyyy-d', with yyyy being the year and d being the semester (i.e. 1 or 2).
@@ -126,7 +133,7 @@ def bin_by_semester(df, date_column, semester_column, agg_func=np.sum):
     date_column: string
         Name of the column containing the date values used for grouping.
     semester_column: string
-        Name to use for the column of month dates.
+        Name to use for the column of semesters.
     agg_func: function, optional
         Aggregation function applied to the groups of values sharing the same month. The default is to sum the values.
 
@@ -134,6 +141,8 @@ def bin_by_semester(df, date_column, semester_column, agg_func=np.sum):
     pandas.DataFrame
         The binned data.
     """
+
+    df = df[df[date_column] < cutoff_date]
 
     def sem(x):
         return semester(df[date_column].loc[x])
@@ -821,6 +830,63 @@ def semester(date):
         return '{0}-{1}'.format(year, 2)
 
 
+def semester_range(date):
+    """The date range for a semester.
+
+    The first and last date of the semester containing `date` are calculated. Semester 1 of a year starts on 1 May,
+    semester 2 on 1 November.
+
+    Params:
+    -------
+    date : datetime.date
+        Date in the semester.
+
+    Returns:
+    --------
+    tuple of datetime.date
+        First and last date of the semester.
+
+    Examples:
+    ---------
+    >>> semester_range(datetime.date(2016, 5, 1))
+    (datetime.date(2016, 5, 1), datetime.date(2016, 10, 31))
+
+    >>> semester_range(datetime.date(2016, 8, 23))
+    (datetime.date(2016, 5, 1), datetime.date(2016, 10, 31))
+
+    >>> semester_range(datetime.date(2016, 10, 31))
+    (datetime.date(2016, 5, 1), datetime.date(2016, 10, 31))
+
+    >>> semester_range(datetime.date(2016, 11, 1))
+    (datetime.date(2016, 11, 1), datetime.date(2017, 4, 30))
+
+    >>> semester_range(datetime.date(2016, 12, 31))
+    (datetime.date(2016, 11, 1), datetime.date(2017, 4, 30))
+
+    >>> semester_range(datetime.date(2017, 4, 30))
+    (datetime.date(2016, 11, 1), datetime.date(2017, 4, 30))
+
+    >>> semester_range(datetime.date(2017, 5, 1))
+    (datetime.date(2017, 5, 1), datetime.date(2017, 10, 31))
+
+    """
+
+    year = date.year
+    month = date.month
+
+    if month < 5:
+        start = datetime.date(year - 1, 11, 1)
+        end = datetime.date(year, 4, 30)
+    elif month < 11:
+        start = datetime.date(year, 5, 1)
+        end = datetime.date(year, 10, 31)
+    else:
+        start = datetime.date(year, 11, 1)
+        end = datetime.date(year + 1, 4, 30)
+
+    return start, end
+
+
 def good_mediocre_bad_color_func(good_limit, bad_limit):
     """Generate the function for deciding what color to use for good, mediocre and bad values.
 
@@ -879,3 +945,32 @@ def neutral_color_func(x):
     """
 
     return '#7f7f7f'
+
+
+def required_for_semester_average(date, average, target_average):
+    """Average value required in the remaining semester to meet a target average.
+
+    `average` is assumed to be the average for that dates in the semester of `date` up tp but exlcuding `date` itself.
+    The necessary average a2 for the remaining semester then is calculated by means of the formula
+
+    a2 = (A * (t1 + t2) - a1 * t1) / t2
+
+    where `A` denotes the target average, `a1` the average before `date`, `t1` the total of night lengths before `date`
+    and `t2` the remaining total of night lengths in the semester.
+    """
+
+    semester_start, semester_end = semester_range(date)
+
+    df = DateRangeQueries(start=semester_start, end=semester_end, con=db.engine).time_breakdown()
+    df = df[['Date', 'NightLength']]
+
+    print(df)
+    before_date = df[df.Date < date]
+    remaining = df[df.Date >= date]
+
+    t1 = np.sum(before_date.NightLength)
+    t2 = np.sum(remaining.NightLength)
+    a1 = average
+    A = target_average
+
+    return (A * (t1 + t2) - a1 * t1) / t2
