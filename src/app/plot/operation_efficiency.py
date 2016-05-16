@@ -9,9 +9,9 @@ import pandas as pd
 from app import db
 from app.plot.plot import DialPlot
 from app.plot.queries import DateRangeQueries
-from app.plot.util import daily_bar_plot, day_range, day_running_average,\
+from app.plot.util import bin_by_semester, daily_bar_plot, day_range, day_running_average,\
                           month_range, monthly_bar_plot, month_running_average,\
-                          good_mediocre_bad_color_func,\
+                          good_mediocre_bad_color_func, semester, required_for_semester_average,\
                           value_last_night, value_last_week
 
 
@@ -43,39 +43,52 @@ class OperationEfficiencyPlots:
         self.df = pd.merge(df_obs_time, df_time_breakdown, on=['Date'], how='outer')
 
         # ignore values with no science time
+        print(self.df[(self.df.Date > datetime.date(2016, 4, 30)) & (self.df.Date < datetime.date(2016, 6, 1))])
         self.df = self.df[self.df.ScienceTime > 0.0001]
 
         # avoid NaN issues later on
         self.df.fillna(value=0, inplace=True)
 
     def last_night_plot(self):
-        """Dial plot displaying the operation efficiency for last night."""
+        """Dial plot displaying the operation efficiency for last night, i.e. for the date preceding `self.date`.
+
+        Returns:
+        --------
+        app.plot.plot.DialPlot
+            Plot displaying the operation efficiency for last night.
+        """
 
         obs_time = value_last_night(df=self.df, date=self.date, date_column='Date', value_column='ObsTime')
         science_time = value_last_night(df=self.df, date=self.date, date_column='Date', value_column='ScienceTime')
-        observation_efficiency = self._observation_efficiency(obs_time, science_time)
+        operation_efficiency = self._observation_efficiency(obs_time, science_time)
 
         label_color_func = good_mediocre_bad_color_func(bad_limit=80, good_limit=90)
 
-        return DialPlot(values=[observation_efficiency],
+        return DialPlot(values=[operation_efficiency],
                         label_values=range(0, 151, 10),
                         label_color_func=label_color_func,
-                        display_values=[str(round(observation_efficiency, 1)) + '%'],
+                        display_values=['{:.1f}%'.format(operation_efficiency)],
                         **self.kwargs)
 
     def week_to_date_plot(self):
-        """Dial plot displaying the operation efficiency for the seven days leading up to but excluding `self.date`."""
+        """Dial plot displaying the operation efficiency for the seven days leading up to but excluding `self.date`.
+
+        Returns:
+        --------
+        app.plot.plot.DialPlot
+            Plot displaying the operation efficiency for the last seven days.
+        """
 
         obs_time = value_last_week(df=self.df, date=self.date, date_column='Date', value_column='ObsTime')
         science_time = value_last_week(df=self.df, date=self.date, date_column='Date', value_column='ScienceTime')
-        observation_efficiency = self._observation_efficiency(obs_time, science_time)
+        operation_efficiency = self._observation_efficiency(obs_time, science_time)
 
         label_color_func = good_mediocre_bad_color_func(bad_limit=80, good_limit=90)
 
-        return DialPlot(values=[observation_efficiency],
+        return DialPlot(values=[operation_efficiency],
                         label_values=range(0, 151, 10),
                         label_color_func=label_color_func,
-                        display_values=[str(round(observation_efficiency, 1)) + '%'],
+                        display_values=['{:.1f}%'.format(operation_efficiency)],
                         **self.kwargs)
 
     def daily_plot(self, days):
@@ -146,6 +159,39 @@ class OperationEfficiencyPlots:
                                 trend_func=trend_func,
                                 post_binning_func=post_binning_func,
                                 **self.kwargs)
+
+    def semester_to_date_plot(self):
+        """Dial plot displaying the operation efficiency for the semester in which `self.date` lies.
+
+        All dates in the semester up to but excluding `self.date` are included when calculating the operation
+        efficiency.
+
+        Returns:
+        --------
+        app.plot.plot.DialPlot
+            Plot of the operation efficiency for the semester to date.
+        """
+
+        sem = semester(self.date)
+        binned_df = bin_by_semester(df=self.df, cutoff_date=self.date, date_column='Date', semester_column='Semester')
+        current_semester = binned_df[binned_df.Semester == sem]
+        if len(current_semester):
+            operation_efficiency = self._observation_efficiency(current_semester.ObsTime[0],
+                                                                current_semester.ScienceTime[0])
+        else:
+            operation_efficiency = 0
+
+        label_color_func = good_mediocre_bad_color_func(good_limit=90, bad_limit=80)
+
+        required_operation_efficiency = required_for_semester_average(date=self.date,
+                                                                      average=operation_efficiency,
+                                                                      target_average=90)
+
+        return DialPlot(values=[operation_efficiency, required_operation_efficiency],
+                        label_values=range(0, 101, 10),
+                        label_color_func=label_color_func,
+                        display_values=['{:.1f}%'.format(operation_efficiency)],
+                        **self.kwargs)
 
     def _observation_efficiency(self, obs_time, science_time):
         return 100 * obs_time / science_time if science_time else np.NaN
