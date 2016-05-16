@@ -141,6 +141,7 @@ class ShutterOpenEfficiencyPlots:
                                 month_column='Month',
                                 y_column='ShutterOpenEfficiency',
                                 y_range=Range1d(start=0, end=80),
+                                y_formatters=[PrintfTickFormatter(format='%d%%')],
                                 trend_func=trend_func,
                                 post_binning_func=post_binning_func,
                                 **self.kwargs)
