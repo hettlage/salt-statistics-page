@@ -52,7 +52,7 @@ def bin_by_date(df, date_column, agg_func=np.sum):
     return grouped
 
 
-def bin_by_month(df, cutoff_date, date_column, month_column, agg_func=np.sum):
+def bin_by_month(df, date_column, month_column, agg_func=np.sum):
     """Bin data by month.
 
     The data is grouped by month according to the values of the specified date column, and then the aggregation function
@@ -61,8 +61,6 @@ def bin_by_month(df, cutoff_date, date_column, month_column, agg_func=np.sum):
 
     A month starts and ends at midnight. This implies that you might have to shift your dates by 12 hours before
     passing the data frame to this function.
-
-    Values are included only if their date is earlier than `cutoff_date`.
 
     Note that in the returned data frame the date column will have been replaced by the month column. The dates in this
     new column have no time component.
@@ -82,8 +80,6 @@ def bin_by_month(df, cutoff_date, date_column, month_column, agg_func=np.sum):
     pandas.DataFrame
         The binned data.
     """
-
-    df = df[df[date_column] < cutoff_date]
 
     def month(x):
         d = df[date_column].loc[x]
