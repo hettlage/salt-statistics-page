@@ -1,6 +1,5 @@
 import datetime
 import functools
-import numpy as np
 
 from bokeh.models import Range1d
 from app import db
@@ -32,22 +31,34 @@ class BlockVisitPlots:
         self.df = DateRangeQueries(start, end, db.engine).block_visits()
 
     def last_night_plot(self):
-        """Dial plot displaying the number of block visits for the date preceding `self.date`."""
+        """Dial plot displaying the number of block visits for the date preceding `self.date`.
+
+        Returns:
+        --------
+        app.plot.plot.DialPlot
+            Plot for last night's number of block visits.
+        """
 
         block_visits = value_last_night(df=self.df, date=self.date, date_column='Date', value_column='BlockCount')
         return DialPlot(values=[block_visits],
                         label_values=range(0, 13),
-                        label_color_func=lambda d: '#7f7f7f',
+                        dial_color_func=lambda d: '#7f7f7f',
                         display_values=[str(block_visits)],
                         **self.kwargs)
 
     def week_to_date_plot(self):
-        """Dial plot displaying the number of block visits in the seven days leading up to but excluding `self.date`."""
+        """Dial plot displaying the number of block visits in the seven days leading up to but excluding `self.date`.
+
+        Returns:
+        --------
+        app.plot.plot.DialPlot
+            Plot displaying the number of block visits for the last seven days.
+        """
 
         block_visits = value_last_week(df=self.df, date=self.date, date_column='Date')
         return DialPlot(values=[block_visits],
                         label_values=range(0, 71, 10),
-                        label_color_func=lambda d: '#7f7f7f',
+                        dial_color_func=lambda d: '#7f7f7f',
                         display_values=[str(block_visits)],
                         **self.kwargs)
 
