@@ -1,5 +1,7 @@
+import collections
 import datetime
 import math
+import types
 
 import numpy as np
 import pandas
@@ -287,8 +289,8 @@ def daily_bar_plot(df, start_date, end_date, date_column, y_column, y_range, tre
                    alt_y_column=None, alt_y_range=None, **kwargs):
     """A bar plot showing data by date.
 
-    The data may contain alternative y values. If so, you have to specify both their column name and the value range to
-    use for the alternative y axis.
+    If you want to plot more than one bar per date you need to supply an array of column names as well as an array of
+    y ranges. These arrays should have the same length. Currently only two bars per date are supported.
 
     An example for `trend_func` would be `functools.partial(day_running_average, ignore_missing_values=False)`. Pass
     None if there should be no trend line.
@@ -303,20 +305,16 @@ def daily_bar_plot(df, start_date, end_date, date_column, y_column, y_range, tre
         The last date to include in the plot.
     date_column : string
         Name of the column containing the dates.
-    y_column : string
-        Name of the column containing the y values to plot.
-    y_range : bokeh.models.Range1d
-        The value range to use for the y axis.
+    y_column : string or iterable of string
+        Name of the column(s) containing the y values to plot.
+    y_range : bokeh.models.Range1d or iterable of bokeh.models.Range1d
+        The value range(s) to use for the y axis (or axes).
     trend_func: function
         Function to use for calculating trend values. This function must accept a Pandas data frame (having columns
         named 'x' and 'y') and an x value as its arguments.
     y_formatters : sequence of bokeh.models.formatters.TickFormatter, optional
         The formatters to use for the y axes. If there are more axes than formatters, the last formatter in the
         sequence is used for the remaining axes.
-    alt_y_column : string, optional
-        Name of the column column containing alternative y values.
-    alt_y_range : bokeh.models.Range1d, optional
-        The value range to use for the alternative y axis.
     **kwargs: keyword arguments
         Additional keyword arguments are passed on the `TimeBarPlot` constructor.
 
@@ -331,24 +329,35 @@ def daily_bar_plot(df, start_date, end_date, date_column, y_column, y_range, tre
         raise ValueError('The start date ({start_date}) must be before the end date ({end_date}'
                          .format(start_date=start_date, end_date=end_date))
 
-    if y_column == alt_y_column:
-        raise ValueError('The values of y_column and the alt_y_column must not be the same.')
+    if isinstance(y_column, str):
+        y_column = [y_column]
+    if len(y_column) == 1:
+        y_column.append(None)
+
+    if not isinstance(y_range, collections.abc.Iterable):
+        y_range = [y_range]
+    if len(y_range) == 1:
+        y_range.append(None)
+
+    if y_column[1] and y_column[1] == y_column[0]:
+        raise ValueError('The y column names must differ from each other.')
 
     date_formats = dict(hours=['%d'], days=['%d'], months=['%d'], years=['%d'])
-    renamed_columns = {date_column: 'x', y_column: 'y'}
-    if alt_y_column:
-        renamed_columns[alt_y_column] = 'alt_y'
+    renamed_columns = {date_column: 'x', y_column[0]: 'y'}
+
+    if y_column[1]:
+        renamed_columns[y_column[1]] = 'alt_y'
     renamed_df = df.rename(columns=renamed_columns)
     x_range = Range1d(start=start_date, end=end_date)
     dx = datetime.timedelta(days=1)
     plot = TimeBarPlot(df=renamed_df,
                        dx=dx,
                        x_range=x_range,
-                       y_range=y_range,
+                       y_range=y_range[0],
                        date_formatter=DatetimeTickFormatter(formats=date_formats),
                        y_formatters=y_formatters,
                        label_orientation=math.pi / 2,
-                       alt_y_range=alt_y_range,
+                       alt_y_range=y_range[1],
                        **kwargs)
 
     if trend_func:
@@ -363,11 +372,11 @@ def daily_bar_plot(df, start_date, end_date, date_column, y_column, y_range, tre
 
 
 def monthly_bar_plot(df, start_date, end_date, date_column, month_column, y_column, y_range, trend_func,
-                     post_binning_func=None, y_formatters=(), alt_y_column=None, alt_y_range=None, **kwargs):
+                     post_binning_func=None, y_formatters=(), **kwargs):
     """A bar plot showing data by month.
 
-    The data may contain alternative y values. If so, you have to specify both their column name and the value range to
-    use for the alternative y axis.
+    If you want to plot more than one bar per date you need to supply an array of column names as well as an array of
+    y ranges. These arrays should have the same length. Currently only two bars per date are supported.
 
     Any date in the start and end month can be used to specify these months.
 
@@ -388,16 +397,16 @@ def monthly_bar_plot(df, start_date, end_date, date_column, month_column, y_colu
     -------
     df : pandas.DataFrame
         The data to plot.
-    star t_date : datetime.date
+    start_date : datetime.date
         A date in the first month to include in the plot.
     end_date : datetime.date
         A date in the last month to include in the plot.
     date_column : string
         Name of the column containing the dates.
-    y_column : string
-        Name of the column containing the y values to plot.
-    y_range : bokeh.models.Range1d
-        The value range to use for the y axis.
+    y_column : string or iterable of string
+        Name of the column(s) containing the y values to plot.
+    y_range : bokeh.models.Range1d or iterable of bokeh.models.Range1d
+        The value range(s) to use for the y axis (or axes).
     trend_func: function
         Function to use for calculating trend values. This function must accept a Pandas data frame (having columns
         named 'x' and 'y') and an x value as its arguments.
@@ -407,10 +416,6 @@ def monthly_bar_plot(df, start_date, end_date, date_column, month_column, y_colu
     y_formatters : sequence of bokeh.models.formatters.TickFormatter
         The formatters to use for the y axes. If there are more axes than formatters, the last formatter in the
         sequence is used for the remaining axes.
-    alt_y_column : string, optional
-        Name of the column column containing alternative y values.
-    alt_y_range : bokeh.models.Range1d, optional
-        The value range to use for the alternative y axis.
     **kwargs: keyword arguments
         Additional keyword arguments are passed on the `TimeBarPlot` constructor.
 
@@ -423,6 +428,19 @@ def monthly_bar_plot(df, start_date, end_date, date_column, month_column, y_colu
     if start_date >= end_date:
         raise ValueError('The start date ({start_date}) must be before the end date ({end_date}'
                          .format(start_date=start_date, end_date=end_date))
+
+    if isinstance(y_column, str):
+        y_column = [y_column]
+    if len(y_column) == 1:
+        y_column.append(None)
+
+    if not isinstance(y_range, collections.abc.Iterable):
+        y_range = [y_range]
+    if len(y_range) == 1:
+        y_range.append(None)
+
+    if y_column[1] and y_column[1] == y_column[0]:
+        raise ValueError('The y column names must differ from each other.')
 
     # figure out how many months to plot
     def months_since_2000(d):
@@ -439,19 +457,19 @@ def monthly_bar_plot(df, start_date, end_date, date_column, month_column, y_colu
     if post_binning_func:
         post_binning_func(binned_df)
 
-    renamed_columns = {month_column: 'x', y_column: 'y'}
+    renamed_columns = {month_column: 'x', y_column[0]: 'y'}
+    if y_column[1]:
+        renamed_columns[y_column[1]] = 'alt_y'
     binned_df = binned_df.rename(columns=renamed_columns)
-    if alt_y_column:
-        renamed_columns[alt_y_column] = 'alt_y'
     x_range = Range1d(start=mid_end_month - months * DX_AVERAGE_MONTH, end=mid_end_month)
     dx = DX_AVERAGE_MONTH
     plot = TimeBarPlot(df=binned_df,
                        dx=dx,
                        x_range=x_range,
-                       y_range=y_range,
+                       y_range=y_range[0],
                        date_formatter=DatetimeTickFormatter(formats=date_formats),
                        y_formatters=y_formatters,
-                       alt_y_range=alt_y_range,
+                       alt_y_range=y_range[1],
                        **kwargs)
 
     if trend_func:
