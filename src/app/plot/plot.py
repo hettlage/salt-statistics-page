@@ -386,7 +386,7 @@ class DialPlot(Plot):
                            text=self.display_values,
                            text_align='center',
                            text_baseline='middle',
-                           text_font_size='200%',
+                           text_font_size='300%',
                            text_font_style='bold')
         else:
             self.plot.text(x=display_x,
@@ -394,7 +394,7 @@ class DialPlot(Plot):
                            text=[self.display_values[0]],
                            text_align='center',
                            text_baseline='bottom',
-                           text_font_size='150%',
+                           text_font_size='300%',
                            text_font_style='bold')
             self.plot.text(x=display_x,
                            y=display_y - 0.05,
