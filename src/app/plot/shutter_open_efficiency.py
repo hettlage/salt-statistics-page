@@ -43,7 +43,6 @@ class ShutterOpenEfficiencyPlots:
         self.df = pd.merge(df_shutter_open_time, df_time_breakdown, on=['Date'], how='outer')
 
         # ignore values with no science time
-        print(self.df[(self.df.Date > datetime.date(2016, 2, 29)) & (self.df.Date < datetime.date(2016, 4, 1))][['Date', 'ShutterOpenTime', 'ScienceTime']])
         self.df = self.df[self.df.ScienceTime > 0.0001]
 
         # avoid NaN issues later on

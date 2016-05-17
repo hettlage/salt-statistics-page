@@ -43,7 +43,6 @@ class OperationEfficiencyPlots:
         self.df = pd.merge(df_obs_time, df_time_breakdown, on=['Date'], how='outer')
 
         # ignore values with no science time
-        print(self.df[(self.df.Date > datetime.date(2016, 4, 30)) & (self.df.Date < datetime.date(2016, 6, 1))])
         self.df = self.df[self.df.ScienceTime > 0.0001]
 
         # avoid NaN issues later on
