@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% macro default_tab_content(plots) %}
+    {{ plots.last_night_plot() | safe }}
+    {{ plots.week_to_date_plot() | safe }}
+    {{ plots.monthly_plot(6) | safe }}
+    {{ plots.daily_plot(31) | safe }}
+    {{ plots.semester_to_date_plot() | safe }}
+{% endmacro %}
+
+{% macro blocks_tab_content(plots) %}
+    {{ plots.last_night_plot() | safe }}
+    {{ plots.week_to_date_plot() | safe }}
+    {{ plots.monthly_plot(6) | safe }}
+    {{ plots.daily_plot(31) | safe }}
+{% endmacro %}
+
+{% macro publications_tab_content(plots) %}
+    {{ plots.monthly_plot(6) }}
+    {{ plots.year_to_date_plot() }}
+{% endmacro %}
+
+{% block page_content %}
+
+    <ul class="nav nav-tabs">
+        <li class="active"><a href="#science-time" data-toggle="tab">Science Time</a></li>
+        <li><a href="#block-visits" data-toggle="tab">Blocks</a></li>
+        <li><a href="#weather-downtime" data-toggle="tab">Weather Downtime</a></li>
+        <li><a href="#telescope-downtime" data-toggle="tab">Telescope Downtime</a></li>
+{#        <li><a href="#engineering-time" data-toggle="tab">Engineering Time</a></li>#}
+{#        <li><a href="#shutter-open-efficiency" data-toggle="tab">Shutter Open Efficiency</a></li>#}
+{#        <li><a href="#operation-efficiency" data-toggle="tab">Operation Efficiency</a></li>#}
+    </ul>
+
+    <div class="tab-content">
+        <div class="tab-pane active" id="science-time">
+            {{ default_tab_content(science_time) }}
+        </div>
+
+        <div class="tab-pane" id="block-visits">
+            {{ blocks_tab_content(block_visits) }}
+        </div>
+
+        <div class="tab-pane" id="weather-downtime">
+            {{ default_tab_content(weather_downtime) }}
+        </div>
+
+        <div class="tab-pane" id="telescope-downtime">
+            {{ default_tab_content(telescope_downtime) }}
+        </div>
+
+    </div>
+
+{% endblock %}
