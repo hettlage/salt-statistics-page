@@ -331,5 +331,6 @@ render_template('dashboard.html',
  
  ```
  {{ my_new_plot | safe }}
+ ```
  
  The dashboard page should now show your plot.
