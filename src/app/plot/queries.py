@@ -104,7 +104,7 @@ class DateRangeQueries:
         sql = """SELECT ni.Date AS Date,
                             ni.TimeLostToWeather AS TimeLostToWeather,
                             ni.TimeLostToProblems AS TimeLostToProblems,
-                            ni.EngineeringTime AS TimeLostToEngineering,
+                            ni.EngineeringTime AS EngineeringTime,
                             ni.ScienceTime AS ScienceTime,
                             TIMESTAMPDIFF(SECOND, ni.EveningTwilightEnd, ni.MorningTwilightStart) AS NightLength
                      FROM NightInfo AS ni
