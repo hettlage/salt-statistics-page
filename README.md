@@ -87,7 +87,7 @@ Edit the configuration file `gulp.config.js` as required. The following table gi
 | `DEV_HOST_USERNAME` | Username on the development server. The user must have the permission to make changes in the directory specified by the property `DEV_HOST_DIR`. |
 | HOST_DIR | Absolute path to the project's root directory on the production host |
 | DEV_HOST_DIR | Absolute path to the project's root directory on the development host |
-| RESTART_HOST_SERVER | Shall command for restarting the server on the production host |
+| RESTART_HOST_SERVER | Shell command for restarting the server on the production host |
 | RESTART_DEV_HOST_SERVER | Shell command for restarting the server on the development host |
 
 In order to deploy the site, you need to be able to login to the development and production server via an ssh key.  To this end, first generate a public SSH key on your machine (if you don't have one already). See [https://help.github.com/articles/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent/](https://help.github.com/articles/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent/) for an explanation of how to do this.
@@ -295,3 +295,41 @@ pip install -r dist/requirements.txt
 
 You have to modify the first line if your virtual environment isn't located in your project's root directory or if it has a name other than venv.
 
+## Adding a new plot
+
+*This is going to change.*
+
+Create a class extending the class `app.plot.plot.Plot`.  This class inherits `self.plot`, which is a Bokeh Figure instance. You have to add all your plot content to this field.
+
+```python
+from app.plot.plot import Plot
+
+class MyNewPlot(Plot):
+    def __init__(self, **kwargs):
+        Plot.__init__(self, **kwargs)
+
+        x = [1, 2, 3]
+        y = [2, 4, 6]
+        self.plot.line(x, y)
+```
+
+Go to the `home` function in `app/main/views.py`, create an instance of your plot class and assign it to a variable (`my_new_plot`, say).
+
+```python
+my_new_plot = MyNewPlot()
+```
+
+Pass this as a named argument to the `render_template` method.
+
+```python
+render_template('dashboard.html',
+                             my_new_plot=my_new_plot,
+                             ...)
+ ```
+ 
+ Add the following to the file `app/templates/dashboard.html` wherte you want the plot to be displayed.
+ 
+ ```
+ {{ my_new_plot | safe }}
+ 
+ The dashboard page should now show your plot.
