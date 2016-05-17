@@ -55,7 +55,7 @@ class BlockVisitPlots:
             Plot displaying the number of block visits for the last seven days.
         """
 
-        block_visits = value_last_week(df=self.df, date=self.date, date_column='Date')
+        block_visits = value_last_week(df=self.df, date=self.date, date_column='Date', value_column='BlockCount')
         return DialPlot(values=[block_visits],
                         label_values=range(0, 71, 10),
                         dial_color_func=lambda d: '#7f7f7f',
