@@ -978,7 +978,6 @@ def required_for_semester_average(date, average, target_average):
     df = DateRangeQueries(start=semester_start, end=semester_end, con=db.engine).time_breakdown()
     df = df[['Date', 'NightLength']]
 
-    print(df)
     before_date = df[df.Date < date]
     remaining = df[df.Date >= date]
 
