@@ -411,6 +411,8 @@ class DialPlot(Plot):
 
             if value > max_value:
                 value = max_value
+            if value < min_value:
+                value = min_value
 
             angle = angle_func(value)
             hand_radius = 0.04
