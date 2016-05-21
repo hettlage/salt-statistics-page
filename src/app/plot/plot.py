@@ -13,7 +13,7 @@ class Plot:
     """Abstract base class for plots to be displayed on the SALT statistics pages.
 
     The plot is created with Bokeh (http://bokeh.pydata.org), and the Figure instance for the plot is exposed as
-    `self.plot`.
+    `self.plot`. You may replace `self.plot` with another Figure in a subclass.
 
     Any parameters passed to the constructor will be passed on to the `bokeh.plotting.Figure` constructor.
 
