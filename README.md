@@ -45,7 +45,7 @@ npm install
 
 ## Configuration for the Flask server
 
-The configuration files for the Flask server must be included in the `config` folder. Examples are provided for production, development and testing. *Do not put the configuration files under version control.*
+The configuration files (`production.py`, `development.py` and `testing.py`) for the Flask server must be included in the `config` folder. Examples are provided for production, development and testing. *Do not put the configuration files under version control.*
 
 Essentially, the following property needs to be defined in each of the configuration files.
 
@@ -116,6 +116,8 @@ The following directories should never be edited.
 All content in these directories may be deleted when Gulp tasks are executed.
 
 ## Running the server during development
+
+You need to set up the configuration files (see the section "Configuration for the Flask server" above), and you need access to the SALT Science Database, or a development copy of it.
 
 In order to run the Flask server, you may activate your virtual environment and launch the server from the command line in the project's root directory.
 
