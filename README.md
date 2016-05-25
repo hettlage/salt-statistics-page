@@ -122,10 +122,10 @@ In order to run the Flask server, you may activate your virtual environment and 
 *Note: Details are likely to change in future!*
 
 ```bash
-python3 app.py
+python3 manage.py runserver
 ```
 
-Alternatively, you can run the Python file from an IDE of your choice. The is accessible at the following URL:
+Alternatively, you can run the Python file from an IDE of your choice. The site then is accessible at the following URL:
 
 http://127.0.0.1:5000/
 
