@@ -155,14 +155,14 @@ Either way, you will have to refresh the browser when you have made changes to t
 
 ## Server configuration
 
-The following outlines how to get the site up-and-running on an Ubuntu 14 server. We assume that the server is called saltstats.salt.ac.za.
+The following outlines how to get the site up-and-running on an Ubuntu 14 server. We assume that the server is called saltstats.cape.saao.ac.za.
 
 First, virtualenv  must be installed for Python 3.
 
 ```bash
 apt-get python3-pip
 pip3 install virtualenv
-cd /var/www/saltstats.salt.ac.za
+cd /var/www/saltstats.cape.saao.ac.za
 python3 -m virtualenv venv
 ```
 
@@ -171,12 +171,12 @@ You may choose a name other than `venv` for your virtual environment, but then y
 Deploy the site content to the server, as described in the next section, and ensure all the Python requirements are met.
 
 ```bash
-cd /var/www/saltstats.salt.ac.za
+cd /var/www/saltstats.cape.saao.ac.za
 source venv/bin/activate
 pip install -r dist/requirements.txt
 ```
 
-Add a configuration file for launching Tornado whenever the system is booted. To this end, create a file `/etc/init/saltstats-flask./conf` with the following content.
+Add a configuration file for launching Tornado whenever the system is booted. To this end, create a file `/etc/init/saltstats-flask.conf` with the following content.
 
 ```
 description "Tornado application server running Flask for saltstats.cape.saao.ac.za"
@@ -189,8 +189,8 @@ setuid www-data
 setgid www-data
 
 env SALTSTATS_FLASK_CONFIG=production
-env SALTSTATS_SECRET_KEY='shuck-granny-upscale'
-env SALTSTATS_DATABASE_URI='mysql://piptquerytool:***REMOVED***@devsdb.cape.saao.ac.za/sdb_copy'
+env SALTSTATS_SECRET_KEY='some-secret-key'
+env SALTSTATS_DATABASE_URI='mysql://piptquerytool:password@devsdb.cape.saao.ac.za/sdb_copy'
 
 script
     cd /var/www/saltstats.cape.saao.ac.za/dist
@@ -218,7 +218,7 @@ Install nginx.
 apt-get install nginx
 ```
 
-On Ubuntu, you should add the configuration file in the folder `/etc/nginx/sites-available/`, and itv should have the following content.
+On Ubuntu, you should add the configuration file in the folder `/etc/nginx/sites-available/`, and it should have the following content.
 
 ```
 upstream tornado_app {
@@ -227,7 +227,7 @@ upstream tornado_app {
 
 server {
     listen *:80;
-    server_name your.server.addredss;
+    server_name your.server.address;
 
     access_log  /var/log/nginx/access.log;
     error_log  /var/log/nginx/error.log;
