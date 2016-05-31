@@ -17,10 +17,14 @@ from ..plot.weather_downtime import WeatherDowntimePlots
 
 from ..plot.mirror_recoating import MirrorRecoatingPlot, update_database
 
-
-@main.route('/', methods=['GET'])
+@main.route('/')
 @login_required
 def home():
+    return render_template('home.html')
+
+@main.route('/dashboard', methods=['GET'])
+@login_required
+def dashboard():
     date = datetime.date(2016, 3, 29)
 
     block_visits = BlockVisitPlots(date)
